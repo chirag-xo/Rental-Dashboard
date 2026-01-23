@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Charcoal Background #1a1a1a */
+    --background: 0 0% 10%;
+    --foreground: 0 0% 100%;
+
+    /* Card: Slightly lighter charcoal #212121 */
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Primary: Gold #d4af37 */
+    --primary: 46 65% 52%;
+    --primary-foreground: 0 0% 10%; /* Dark text on gold */
+
+    /* Secondary: Dark Gray */
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%;
+
+    /* Accent */
+    --accent: 0 0% 25%;
+    --accent-foreground: 46 65% 52%;
+
+    /* Destructive */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders */
+    --border: 0 0% 25%;
+    --input: 0 0% 20%;
+    --ring: 46 65% 52%;
+
+    /* Radius: requested 2xl rounded corners, typical 1rem */
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
