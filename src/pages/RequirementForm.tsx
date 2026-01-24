@@ -10,28 +10,41 @@ import { motion } from "framer-motion";
 import { RefreshCcw, ArrowRight } from "lucide-react";
 // import { toast } from "sonner"; // If we had a toast library, for now alert
 
-const CATEGORIES: PackageCategory[] = ["Ring", "Bay", "Fabric", "Others", "Fasad"];
+import { useInventory } from "@/store/inventoryStore";
 
-const INITIAL_STATE: SelectionState = {
-    Ring: { meter: 30, qty: 0 },
-    Bay: { meter: 30, qty: 0 },
-    Fabric: { meter: 30, qty: 0 },
-    Others: { meter: 30, qty: 0 },
-    Fasad: { meter: 30, qty: 0 },
-};
 
 export default function RequirementForm() {
     const navigate = useNavigate();
-    const { data, saveState, isLoaded } = usePersistence();
-    const [selection, setSelection] = useState<SelectionState>(INITIAL_STATE);
+    const { data: persistentData, saveState, isLoaded: isPersistenceLoaded } = usePersistence();
+    const { categories, loading: isInventoryLoading } = useInventory();
+    const [selection, setSelection] = useState<SelectionState>({});
+
+    const isLoaded = isPersistenceLoaded && !isInventoryLoading;
 
     // Load from persistence once ready
+    // Load and merge persistence with dynamic categories
     useEffect(() => {
-        if (isLoaded && data.selection && Object.keys(data.selection).length > 0) {
-            // Merge with initial to ensure all categories exist
-            setSelection({ ...INITIAL_STATE, ...data.selection });
+        if (isLoaded && categories.length > 0) {
+            const initialSelection: SelectionState = {};
+
+            // initialize all categories with default 0
+            categories.forEach(cat => {
+                const defaultMeter = cat.supportedLengths?.[0] || 30;
+                initialSelection[cat.name] = { meter: defaultMeter, qty: 0 };
+            });
+
+            // merge persisted data
+            if (persistentData.selection && Object.keys(persistentData.selection).length > 0) {
+                Object.entries(persistentData.selection).forEach(([key, val]) => {
+                    if (initialSelection[key]) {
+                        initialSelection[key] = val;
+                    }
+                });
+            }
+
+            setSelection(initialSelection);
         }
-    }, [isLoaded, data.selection]);
+    }, [isLoaded, persistentData.selection, categories]);
 
     const handleUpdate = (category: string, field: "meter" | "qty", value: string) => {
         setSelection((prev) => ({
@@ -45,8 +58,13 @@ export default function RequirementForm() {
 
     const handeReset = () => {
         if (confirm("Are you sure you want to reset the form?")) {
-            setSelection(INITIAL_STATE);
-            saveState({ selection: INITIAL_STATE });
+            const resetState: SelectionState = {};
+            categories.forEach(cat => {
+                const defaultMeter = cat.supportedLengths?.[0] || 30;
+                resetState[cat.name] = { meter: defaultMeter, qty: 0 };
+            });
+            setSelection(resetState);
+            saveState({ selection: resetState });
         }
     };
 
@@ -74,14 +92,15 @@ export default function RequirementForm() {
                 className="space-y-4 pb-20"
             >
                 <div className="space-y-4">
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                         <CategoryRow
-                            key={cat}
-                            category={cat}
-                            selectedMeter={selection[cat]?.meter?.toString() || "30"}
-                            selectedQty={selection[cat]?.qty?.toString() || "0"}
-                            onMeterChange={(v) => handleUpdate(cat, "meter", v)}
-                            onQtyChange={(v) => handleUpdate(cat, "qty", v)}
+                            key={cat.id}
+                            category={cat.name}
+                            selectedMeter={selection[cat.name]?.meter?.toString() || (cat.supportedLengths?.[0]?.toString() || "30")}
+                            selectedQty={selection[cat.name]?.qty?.toString() || "0"}
+                            validLengths={cat.supportedLengths}
+                            onMeterChange={(v) => handleUpdate(cat.name, "meter", v)}
+                            onQtyChange={(v) => handleUpdate(cat.name, "qty", v)}
                         />
                     ))}
                 </div>

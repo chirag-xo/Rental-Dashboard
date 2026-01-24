@@ -4,6 +4,50 @@
 
 @layer base {
   :root {
+    /* Light Mode (Option A: Clean Professional) */
+    --background: 0 0% 100%;
+    /* #ffffff */
+    --foreground: 222 47% 11%;
+    /* #0f172a */
+
+    --card: 0 0% 100%;
+    /* #ffffff */
+    --card-foreground: 222 47% 11%;
+    /* #0f172a */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: Vibrant Blue (221.2 83.2% 53.3%) */
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary: Light Slate */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+
+    /* Muted */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
+
+    /* Destructive */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    /* Dark Mode (Original) */
     /* Charcoal Background #1a1a1a */
     --background: 0 0% 10%;
     --foreground: 0 0% 100%;
@@ -17,7 +61,8 @@
 
     /* Primary: Gold #d4af37 */
     --primary: 46 65% 52%;
-    --primary-foreground: 0 0% 10%; /* Dark text on gold */
+    --primary-foreground: 0 0% 10%;
+    /* Dark text on gold */
 
     /* Secondary: Dark Gray */
     --secondary: 0 0% 20%;
@@ -39,9 +84,6 @@
     --border: 0 0% 25%;
     --input: 0 0% 20%;
     --ring: 46 65% 52%;
-
-    /* Radius: requested 2xl rounded corners, typical 1rem */
-    --radius: 1rem;
   }
 }
 
@@ -49,6 +91,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

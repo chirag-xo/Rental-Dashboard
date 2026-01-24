@@ -14,9 +14,10 @@ import { Search } from "lucide-react";
 
 type ItemsTableProps = {
     items: CalculatedItem[];
+    onUpdateQty?: (name: string, qty: number) => void;
 };
 
-export function ItemsTable({ items }: ItemsTableProps) {
+export function ItemsTable({ items, onUpdateQty }: ItemsTableProps) {
     const [search, setSearch] = useState("");
 
     const filteredItems = useMemo(() => {
@@ -86,7 +87,27 @@ export function ItemsTable({ items }: ItemsTableProps) {
                                                 </Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-center">{item.qty}</TableCell>
+                                        <TableCell className="text-center">
+                                            {onUpdateQty ? (
+                                                <Input
+                                                    type="number"
+                                                    className="h-8 w-16 text-center mx-auto"
+                                                    value={item.qty.toString()}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        if (!isNaN(val) && val >= 0) {
+                                                            onUpdateQty(item.name, val);
+                                                        } else if (e.target.value === "") {
+                                                            // Allow distinct empty -> 0 handling if typically supported, 
+                                                            // but for now 0 safe.
+                                                            onUpdateQty(item.name, 0);
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                item.qty
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right text-muted-foreground text-xs">
                                             {item.weightPerPc !== null ? item.weightPerPc.toFixed(2) : "-"}
                                         </TableCell>

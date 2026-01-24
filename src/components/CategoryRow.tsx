@@ -12,6 +12,7 @@ type CategoryRowProps = {
     category: PackageCategory;
     selectedMeter: string;
     selectedQty: string;
+    validLengths?: number[]; // Added prop
     onMeterChange: (val: string) => void;
     onQtyChange: (val: string) => void;
 };
@@ -20,9 +21,13 @@ export function CategoryRow({
     category,
     selectedMeter,
     selectedQty,
+    validLengths = [20, 30, 40, 50], // Default fallback
     onMeterChange,
     onQtyChange,
 }: CategoryRowProps) {
+    // If current selection is invalid for this category, maybe show warning or auto-select?
+    // For now, we trust parent to handle defaults, or user to select.
+
     return (
         <div className="bg-card/50 p-4 rounded-xl border border-border shadow-sm space-y-3">
             <div className="font-semibold text-lg text-primary">{category}</div>
@@ -31,12 +36,12 @@ export function CategoryRow({
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">
                         Size
                     </Label>
-                    <Select value={selectedMeter} onValueChange={onMeterChange}>
+                    <Select value={selectedMeter} onValueChange={onMeterChange} disabled={validLengths.length <= 1}>
                         <SelectTrigger className="bg-background border-input/50 h-11">
                             <SelectValue placeholder="Size" />
                         </SelectTrigger>
                         <SelectContent>
-                            {[20, 30, 40, 50].map((m) => (
+                            {validLengths.map((m) => (
                                 <SelectItem key={m} value={m.toString()}>
                                     {m}m
                                 </SelectItem>
@@ -54,7 +59,7 @@ export function CategoryRow({
                             <SelectValue placeholder="Qty" />
                         </SelectTrigger>
                         <SelectContent>
-                            {[0, 1, 2, 3, 4, 5].map((q) => (
+                            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((q) => (
                                 <SelectItem key={q} value={q.toString()}>
                                     {q === 0 ? "None" : q}
                                 </SelectItem>

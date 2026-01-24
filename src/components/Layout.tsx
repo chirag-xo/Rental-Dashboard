@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Package } from "lucide-react";
+import { Package, Settings, Calculator } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 type LayoutProps = {
     children: React.ReactNode;
@@ -9,7 +10,16 @@ type LayoutProps = {
     className?: string;
 };
 
+import { ModeToggle } from "@/components/mode-toggle";
+
 export function Layout({ children, title, subtitle, className }: LayoutProps) {
+    const location = useLocation();
+
+    const navItems = [
+        { label: "Calculator", path: "/", icon: Calculator },
+        { label: "Manage Data", path: "/admin", icon: Settings },
+    ];
+
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
             <header className="sticky top-0 z-10 bg-card/80 backdrop-blur-md border-b border-border shadow-sm">
@@ -27,11 +37,30 @@ export function Layout({ children, title, subtitle, className }: LayoutProps) {
                             </p>
                         </div>
                     </div>
-                    {/* <div className="text-xs text-muted-foreground">
-             {new Date().toLocaleDateString()} 
-          </div> */}
+                    <ModeToggle />
                 </div>
-            </header>
+
+                <nav className="flex gap-1 bg-muted/20 p-1 rounded-lg">
+                    {navItems.map(item => {
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all",
+                                    isActive
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                            >
+                                <item.icon className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">{item.label}</span>
+                            </Link>
+                        )
+                    })}
+                </nav>
+            </header >
 
             <main className={cn("flex-1 max-w-md mx-auto w-full px-4 py-6", className)}>
                 {title && (
@@ -54,6 +83,6 @@ export function Layout({ children, title, subtitle, className }: LayoutProps) {
                     </p>
                 </div>
             </footer>
-        </div>
+        </div >
     );
 }

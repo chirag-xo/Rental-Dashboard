@@ -24,15 +24,22 @@ export type CustomItem = {
     weightPerPc: number;
 };
 
+export type ItemOverride = {
+    qty?: number;
+    weightPerPc?: number;
+};
+
 type PersistedData = {
     selection: SelectionState;
     customItems: CustomItem[];
+    overrides: Record<string, ItemOverride>;
 };
 
 export function usePersistence() {
     const [data, setData] = useState<PersistedData>({
         selection: {},
         customItems: [],
+        overrides: {},
     });
 
     const [isLoaded, setIsLoaded] = useState(false);
@@ -64,7 +71,7 @@ export function usePersistence() {
 
     const clearState = () => {
         localStorage.removeItem(STORAGE_KEY);
-        setData({ selection: {}, customItems: [] });
+        setData({ selection: {}, customItems: [], overrides: {} });
     };
 
     return { data, saveState, clearState, isLoaded };

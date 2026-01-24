@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Search, Check } from "lucide-react";
 import { type CustomItem } from "@/hooks/usePersistence";
-import { findItemWeight } from "@/data/packages";
-import { useEffect } from "react";
+import { useInventory } from "@/store/inventoryStore";
 import { v4 as uuidv4 } from "uuid";
+import { motion, AnimatePresence } from "framer-motion";
 
 type CustomItemAdderProps = {
     onAdd: (item: CustomItem) => void;
@@ -18,14 +18,39 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
     const [qty, setQty] = useState("1");
     const [weight, setWeight] = useState("");
 
-    // Auto-lookup weight
+    // Search state
+    const { categories } = useInventory();
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const allItems = useMemo(() => {
+        return categories.flatMap(c => c.items);
+    }, [categories]);
+
+    const filteredItems = useMemo(() => {
+        if (!name) return allItems;
+        const lower = name.toLowerCase();
+        return allItems.filter(i => i.name.toLowerCase().includes(lower));
+    }, [allItems, name]);
+
+    // Handle outside click to close suggestions
     useEffect(() => {
-        if (!name) return;
-        const foundWeight = findItemWeight(name);
-        if (foundWeight !== null) {
-            setWeight(foundWeight.toString());
+        function handleClickOutside(event: MouseEvent) {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
         }
-    }, [name]);
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleSelect = (item: { name: string; weightPerPcKg: number | null }) => {
+        setName(item.name);
+        if (item.weightPerPcKg !== null) {
+            setWeight(item.weightPerPcKg.toString());
+        }
+        setShowSuggestions(false);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,6 +68,7 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
         setQty("1");
         setWeight("");
         setIsOpen(false);
+        setShowSuggestions(false);
     };
 
     if (!isOpen) {
@@ -67,9 +93,38 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="space-y-1">
+                <div className="space-y-1 relative" ref={wrapperRef}>
                     <Label htmlFor="name">Item Name</Label>
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Generator 5kW" />
+                    <div className="relative">
+                        <Input
+                            id="name"
+                            value={name}
+                            onChange={(e) => {
+                                setName(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
+                            required
+                            placeholder="Search or enter item name..."
+                            autoComplete="off"
+                        />
+                        {name && filteredItems.length > 0 && showSuggestions && (
+                            <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                                {filteredItems.map(item => (
+                                    <div
+                                        key={item.id}
+                                        className="px-3 py-2 text-sm hover:bg-muted cursor-pointer flex justify-between items-center group"
+                                        onClick={() => handleSelect(item)}
+                                    >
+                                        <span>{item.name}</span>
+                                        {item.weightPerPcKg && (
+                                            <span className="text-xs text-muted-foreground">{item.weightPerPcKg} kg</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -78,7 +133,7 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
                         <Input id="qty" type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} required />
                     </div>
                     <div className="space-y-1">
-                        <Label htmlFor="weight">Weight (kg) <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                        <Label htmlFor="weight">Weight (kg) <span className="text-muted-foreground text-xs">(Per Pc)</span></Label>
                         <Input id="weight" type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0" />
                     </div>
                 </div>

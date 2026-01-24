@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ItemsTable } from "@/components/ItemsTable";
 import { CustomItemAdder } from "@/components/CustomItemAdder";
 import { usePersistence } from "@/hooks/usePersistence";
+import { useInventory } from "@/store/inventoryStore";
 import { calculateRequirements } from "@/utils/calculations";
 import { generatePDF } from "@/utils/pdfGenerator";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +14,10 @@ import { motion } from "framer-motion";
 
 export default function ReviewItems() {
     const navigate = useNavigate();
-    const { data, saveState, isLoaded } = usePersistence();
+    const { data, saveState, isLoaded: isPersistenceLoaded } = usePersistence();
+    const { categories, loading: isInventoryLoading } = useInventory();
+
+    const isLoaded = isPersistenceLoaded && !isInventoryLoading;
 
     // Redirect if empty
     const hasSelection = useMemo(() => {
@@ -28,8 +32,8 @@ export default function ReviewItems() {
     }, [isLoaded, hasSelection, navigate]);
 
     const { items, categoryTotals, grandTotalKnown, missingWeightCount } = useMemo(
-        () => calculateRequirements(data.selection, data.customItems),
-        [data.selection, data.customItems]
+        () => calculateRequirements(data.selection, data.customItems, categories, data.overrides),
+        [data.selection, data.customItems, categories, data.overrides]
     );
 
     // Summary Text for PDF
@@ -44,6 +48,18 @@ export default function ReviewItems() {
 
     const handeAddCustom = (item: any) => {
         saveState({ customItems: [...data.customItems, item] });
+    };
+
+    const handleUpdateQty = (name: string, qty: number) => {
+        saveState({
+            overrides: {
+                ...data.overrides,
+                [name]: {
+                    ...data.overrides?.[name],
+                    qty,
+                },
+            },
+        });
     };
 
     if (!isLoaded || !hasSelection) return <div className="p-8 text-center">Loading...</div>;
@@ -79,7 +95,7 @@ export default function ReviewItems() {
                     <p className="text-4xl font-bold tracking-tight text-foreground">{grandTotalKnown.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-lg font-normal text-muted-foreground">kg</span></p>
 
                     {missingWeightCount > 0 && (
-                        <div className="flex items-center gap-1.5 text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full mt-2">
+                        <div className="flex items-center gap-1.5 text-primary bg-primary/10 px-3 py-1 rounded-full mt-2">
                             <AlertTriangle className="h-3 w-3" />
                             <span className="text-xs font-medium">{missingWeightCount} items missing weight</span>
                         </div>
@@ -87,7 +103,7 @@ export default function ReviewItems() {
                 </div>
 
                 {/* Items Table */}
-                <ItemsTable items={items} />
+                <ItemsTable items={items} onUpdateQty={handleUpdateQty} />
 
                 {/* Add Custom Item */}
                 <CustomItemAdder onAdd={handeAddCustom} />
