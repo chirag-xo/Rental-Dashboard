@@ -20,7 +20,6 @@ export const SCALING_FACTORS: Record<MeterOption, number> = {
     30: 1.0,
     40: 1.33,
     50: 1.67,
-    50: 1.67, // Duplicate 50 logic? 50 is listed once.
 };
 
 /**

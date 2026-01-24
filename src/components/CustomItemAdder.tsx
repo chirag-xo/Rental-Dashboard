@@ -2,11 +2,10 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, X, Search, Check } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { type CustomItem } from "@/hooks/usePersistence";
 import { useInventory } from "@/store/inventoryStore";
 import { v4 as uuidv4 } from "uuid";
-import { motion, AnimatePresence } from "framer-motion";
 
 type CustomItemAdderProps = {
     onAdd: (item: CustomItem) => void;

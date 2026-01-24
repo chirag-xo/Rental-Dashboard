@@ -4,7 +4,6 @@ import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
 import { CategoryRow } from "@/components/CategoryRow";
 import { usePersistence, type SelectionState } from "@/hooks/usePersistence";
-import { type PackageCategory } from "@/data/packages";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RefreshCcw, ArrowRight } from "lucide-react";
