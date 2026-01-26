@@ -12,11 +12,15 @@ import { RefreshCcw, ArrowRight } from "lucide-react";
 import { useInventory } from "@/store/inventoryStore";
 
 
+import { DirectItemAdder } from "@/components/DirectItemAdder";
+import { type CustomItem } from "@/hooks/usePersistence";
+
 export default function RequirementForm() {
     const navigate = useNavigate();
     const { data: persistentData, saveState, isLoaded: isPersistenceLoaded } = usePersistence();
     const { categories, loading: isInventoryLoading } = useInventory();
     const [selection, setSelection] = useState<SelectionState>({});
+    const [directItems, setDirectItems] = useState<CustomItem[]>([]);
 
     const isLoaded = isPersistenceLoaded && !isInventoryLoading;
 
@@ -42,8 +46,13 @@ export default function RequirementForm() {
             }
 
             setSelection(initialSelection);
+
+            // Load direct items
+            if (persistentData.directItems) {
+                setDirectItems(persistentData.directItems);
+            }
         }
-    }, [isLoaded, persistentData.selection, categories]);
+    }, [isLoaded, persistentData.selection, persistentData.directItems, categories]);
 
     const handleUpdate = (category: string, field: "meter" | "qty", value: string) => {
         setSelection((prev) => ({
@@ -55,6 +64,32 @@ export default function RequirementForm() {
         }));
     };
 
+    // Direct Item Handlers
+    const handleAddDirectItem = (item: CustomItem) => {
+        const newItems = [...directItems, item];
+        setDirectItems(newItems);
+        // We defer saving to "Next" or allow auto-save?
+        // Let's safe immediately to keep consistent UI state if user reloads
+        // Actually saveState merges, so we need to be careful not to overwrite other fields if we only pass partial
+        // But saveState docs say: const next = { ...prev, ...newState }; so it's a shallow merge of top level keys.
+        // Good.
+        // However, for performance, maybe just local state until "Next"? 
+        // Plan says: "LocalStorage persistence must include... step1 direct items"
+        // Let's save on Next to align with "Reset" logic or save immediately? 
+        // "handeReset" clears everything.
+        // Let's update local state only here, and save on "Next" or "Reset". 
+        // But user expects persistence. The `useEffect` loads it.
+        // If I reload page without clicking Next, I lose data if I don't save here.
+        // So let's save.
+        saveState({ directItems: newItems });
+    };
+
+    const handleRemoveDirectItem = (id: string) => {
+        const newItems = directItems.filter(i => i.id !== id);
+        setDirectItems(newItems);
+        saveState({ directItems: newItems });
+    };
+
     const handeReset = () => {
         if (confirm("Are you sure you want to reset the form?")) {
             const resetState: SelectionState = {};
@@ -63,19 +98,22 @@ export default function RequirementForm() {
                 resetState[cat.name] = { meter: defaultMeter, qty: 0 };
             });
             setSelection(resetState);
-            saveState({ selection: resetState });
+            setDirectItems([]);
+            saveState({ selection: resetState, directItems: [] });
         }
     };
 
     const handleNext = () => {
-        // Validation: At least one item with qty > 0
+        // Validation: At least one item with qty > 0 OR one direct item
         const hasSelection = Object.values(selection).some((s) => s.qty > 0);
-        if (!hasSelection) {
-            alert("Please select at least one package quantity.");
+        const hasDirectItems = directItems.length > 0;
+
+        if (!hasSelection && !hasDirectItems) {
+            alert("Please select at least one package quantity OR add a direct item.");
             return;
         }
 
-        saveState({ selection });
+        saveState({ selection, directItems });
         navigate("/review");
     };
 
@@ -88,8 +126,24 @@ export default function RequirementForm() {
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-4 pb-20"
+                className="space-y-6 pb-20"
             >
+                {/* Direct Items Search */}
+                <DirectItemAdder
+                    items={directItems}
+                    onAdd={handleAddDirectItem}
+                    onRemove={handleRemoveDirectItem}
+                />
+
+                <div className="relative py-2">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Or Select Packages</span>
+                    </div>
+                </div>
+
                 <div className="space-y-4">
                     {categories.map((cat) => (
                         <CategoryRow

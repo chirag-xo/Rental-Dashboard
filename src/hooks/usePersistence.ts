@@ -32,6 +32,7 @@ export type ItemOverride = {
 type PersistedData = {
     selection: SelectionState;
     customItems: CustomItem[];
+    directItems: CustomItem[]; // New: Step 1 direct items
     overrides: Record<string, ItemOverride>;
 };
 
@@ -39,6 +40,7 @@ export function usePersistence() {
     const [data, setData] = useState<PersistedData>({
         selection: {},
         customItems: [],
+        directItems: [], // Init empty
         overrides: {},
     });
 
@@ -50,7 +52,8 @@ export function usePersistence() {
             if (stored) {
                 const parsed = JSON.parse(stored);
                 if (parsed && typeof parsed === "object") {
-                    // Basic validation could go here
+                    // Ensure directItems exists regarding old data
+                    if (!parsed.directItems) parsed.directItems = [];
                     setData(parsed);
                 }
             }
@@ -71,7 +74,7 @@ export function usePersistence() {
 
     const clearState = () => {
         localStorage.removeItem(STORAGE_KEY);
-        setData({ selection: {}, customItems: [], overrides: {} });
+        setData({ selection: {}, customItems: [], directItems: [], overrides: {} });
     };
 
     return { data, saveState, clearState, isLoaded };

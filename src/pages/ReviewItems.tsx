@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 
 export default function ReviewItems() {
     const navigate = useNavigate();
-    const { data, saveState, isLoaded: isPersistenceLoaded } = usePersistence();
+    const { data, saveState, clearState, isLoaded: isPersistenceLoaded } = usePersistence();
     const { categories, loading: isInventoryLoading } = useInventory();
 
     const isLoaded = isPersistenceLoaded && !isInventoryLoading;
@@ -22,8 +22,17 @@ export default function ReviewItems() {
     // Redirect if empty
     const hasSelection = useMemo(() => {
         if (!data.selection) return false;
-        return Object.values(data.selection).some((s) => s.qty > 0);
-    }, [data.selection]);
+        // Also check direct items? actually if direct items exist, we shouldn't redirect?
+        // But original logic only checked selection. RequirementForm now allows direct items only.
+        // So we should update this check too!
+        // "Step 1 validation passes if either... OR direct item added"
+        // So here we should allow if selection OR direct items.
+        // But `data.selection` might be empty object if clearState called.
+        // Let's rely on data check.
+        const hasDirect = data.directItems && data.directItems.length > 0;
+        const hasSel = data.selection && Object.values(data.selection).some((s) => s.qty > 0);
+        return hasDirect || hasSel;
+    }, [data.selection, data.directItems]);
 
     useEffect(() => {
         if (isLoaded && !hasSelection) {
@@ -32,11 +41,28 @@ export default function ReviewItems() {
     }, [isLoaded, hasSelection, navigate]);
 
     const { items, categoryTotals, grandTotalKnown, missingWeightCount } = useMemo(
-        () => calculateRequirements(data.selection, data.customItems, categories, data.overrides),
-        [data.selection, data.customItems, categories, data.overrides]
+        () => calculateRequirements(
+            data.selection,
+            data.customItems,
+            categories,
+            data.overrides,
+            data.directItems // Pass direct items
+        ),
+        [data.selection, data.customItems, categories, data.overrides, data.directItems]
     );
 
-    // Summary Text for PDF
+    // Summary Text for PDF (Should unclude direct items?)
+    // data.selection only covers categories. 
+    // Let's rely on the final Merged "items" list for the "Summary" or just keep categories summary?
+    // "PDF Generation Update... PDF must use the final merged list only".
+    // The `generatePDF` function takes `items`. `items` is now merged.
+    // The "summaryText" usually passed to PDF is just a string description. 
+    // Let's update summaryText to include everything or just leave it as Category summary?
+    // User didn't explicitly asking to change the *Summary String* on top, but "PDF should use final merged list".
+    // `generatePDF` uses `items`. So PDF table is good.
+    // I will leave summaryText as is or maybe append " + Direct Items".
+    // Let's keep it simple for now, as `items` table in PDF is the source of truth.
+
     const summaryText = Object.entries(data.selection || {})
         .filter(([_, val]) => val.qty > 0)
         .map(([cat, val]) => `${cat} (${val.meter}m) x ${val.qty}`)
@@ -44,6 +70,13 @@ export default function ReviewItems() {
 
     const handleDownloadPDF = () => {
         generatePDF(items, grandTotalKnown, categoryTotals, summaryText);
+
+        // Reset and Navigate Home as requested
+        // Small delay to ensure download starts
+        setTimeout(() => {
+            clearState();
+            navigate("/");
+        }, 1000);
     };
 
     const handeAddCustom = (item: any) => {
