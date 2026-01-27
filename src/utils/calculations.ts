@@ -6,9 +6,8 @@ import {
 import {
     type CalculatedItem,
     getPackageItems,
-    type MeterOption,
 } from "@/data/packages";
-import type { InventoryCategory } from "@/store/inventoryStore";
+import type { InventoryCategory, MeterOption } from "@/store/inventoryStore";
 
 export type CalculationResult = {
     items: CalculatedItem[];
