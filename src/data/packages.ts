@@ -1,8 +1,6 @@
-import type { InventoryItem } from "@/store/inventoryStore";
+import type { InventoryItem, MeterOption } from "@/store/inventoryStore";
 
-export type MeterOption = 20 | 30 | 40 | 50;
-// PackageCategory is now just string, but we can keep alias if helpful, 
-// though dynamic categories means any string is valid.
+// PackageCategory is now just string
 export type PackageCategory = string;
 
 export type CalculatedItem = {
@@ -12,14 +10,6 @@ export type CalculatedItem = {
     weightPerPc: number | null;
     totalWeight: number | null;
     isCustom?: boolean;
-};
-
-// Scaling factors relative to 30m
-export const SCALING_FACTORS: Record<MeterOption, number> = {
-    20: 0.67,
-    30: 1.0,
-    40: 1.33,
-    50: 1.67,
 };
 
 /**
@@ -34,15 +24,18 @@ export function getPackageItems(
 ): CalculatedItem[] {
     if (qty <= 0) return [];
 
-    return items.map((item) => {
-        // Use override if exists for this meter, otherwise fall back to scaling defaultQty
-        let totalQty = 0;
-        if (item.qtyOverrides && item.qtyOverrides[meter] !== undefined) {
-            totalQty = item.qtyOverrides[meter] * qty;
-        } else {
-            const scale = SCALING_FACTORS[meter] || 1.0;
-            totalQty = Math.round(item.defaultQty * scale * qty);
-        }
+    // Filter items that match the selected length
+    const relevantItems = items.filter(item => item.length === meter);
+
+    return relevantItems.map((item) => {
+        // No scaling factors anymore. Use item.quantity directly.
+        // If qty > 1 (multiple packages), multiply.
+
+        // Wait, previously `qtyOverrides` was handled here.
+        // Now "Overrides" are gone from Schema.
+        // We just have `quantity`.
+
+        const totalQty = item.quantity * qty;
 
         // Ensure strictly 2 decimal places for weight
         const totalWeight = item.weightPerPcKg !== null

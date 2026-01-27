@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { type CustomItem } from "@/hooks/usePersistence";
-import { useInventory } from "@/store/inventoryStore";
+import { useInventory, type InventoryItem } from "@/store/inventoryStore";
 import { v4 as uuidv4 } from "uuid";
 
 type CustomItemAdderProps = {
@@ -43,7 +43,7 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleSelect = (item: { name: string; weightPerPcKg: number | null }) => {
+    const handleSelect = (item: InventoryItem) => {
         setName(item.name);
         if (item.weightPerPcKg !== null) {
             setWeight(item.weightPerPcKg.toString());
@@ -115,7 +115,7 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
                                         className="px-3 py-2 text-sm hover:bg-muted cursor-pointer flex justify-between items-center group"
                                         onClick={() => handleSelect(item)}
                                     >
-                                        <span>{item.name}</span>
+                                        <span>{item.name} <span className="text-xs text-muted-foreground">({item.length}m)</span></span>
                                         {item.weightPerPcKg && (
                                             <span className="text-xs text-muted-foreground">{item.weightPerPcKg} kg</span>
                                         )}
@@ -145,3 +145,4 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
         </div>
     );
 }
+

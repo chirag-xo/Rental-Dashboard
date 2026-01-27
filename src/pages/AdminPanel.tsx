@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Unused
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useInventory, type InventoryCategory, type InventoryItem } from "@/store/inventoryStore";
+import {
+    useInventory,
+    type InventoryCategory,
+    type InventoryItem,
+    type MeterOption,
+    AVAILABLE_LENGTHS
+} from "@/store/inventoryStore";
 import { Plus, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ItemSearchInput } from "@/components/ItemSearchInput";
 
 export default function AdminPanel() {
     return (
@@ -20,19 +28,50 @@ export default function AdminPanel() {
 }
 
 function CategoryManager() {
-    const { categories, addCategory, deleteCategory, updateCategory, updateCategoryLengths, addItem, updateItem, deleteItem } = useInventory();
-    const [newCatName, setNewCatName] = useState("");
+    const {
+        categories,
+        addCategory,
+        deleteCategory,
+        updateCategory,
+        updateCategoryLengths,
+        addItem,
+        updateItem,
+        deleteItem,
+        getAllKnownItems
+    } = useInventory();
 
-    // Default lengths for new categories
-    // const [selectedLengths, setSelectedLengths] = useState<number[]>([20, 30, 40, 50]); // Unused
+    const [newCatName, setNewCatName] = useState("");
+    const [selectedLengths, setSelectedLengths] = useState<MeterOption[]>([20, 30, 40, 50]);
+
+    // Compute known items for search
+    const knownItems = useMemo(() => getAllKnownItems(), [categories]);
 
     const handleAddCategory = (e: React.FormEvent) => {
         e.preventDefault();
         if (newCatName.trim()) {
-            addCategory(newCatName.trim());
-            setNewCatName("");
+            const result = addCategory(newCatName.trim(), selectedLengths);
+
+            if (result.success) {
+                if (result.message) {
+                    alert(result.message); // Show warning/merge info
+                }
+                setNewCatName("");
+                setSelectedLengths([20, 30, 40, 50]);
+            } else {
+                if (result.message) {
+                    alert(result.message); // Show error (e.g. all lengths duplicates)
+                }
+            }
         }
     };
+
+    const toggleNewCatLength = (len: MeterOption) => {
+        setSelectedLengths(prev =>
+            prev.includes(len)
+                ? prev.filter(l => l !== len)
+                : [...prev, len].sort((a, b) => a - b)
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -42,16 +81,32 @@ function CategoryManager() {
                 </CardHeader>
                 <CardContent>
                     {/* Add Category */}
-                    <form onSubmit={handleAddCategory} className="flex gap-2">
-                        <Input
-                            placeholder="New Category Name (e.g. Sound, Lighting)"
-                            value={newCatName}
-                            onChange={(e) => setNewCatName(e.target.value)}
-                            className="bg-card border-border"
-                        />
-                        <Button type="submit">
-                            <Plus className="h-4 w-4 mr-2" /> Add Category
-                        </Button>
+                    <form onSubmit={handleAddCategory} className="space-y-4">
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="New Category Name (e.g. Sound, Lighting)"
+                                value={newCatName}
+                                onChange={(e) => setNewCatName(e.target.value)}
+                                className="bg-card border-border flex-1"
+                            />
+                            <Button type="submit">
+                                <Plus className="h-4 w-4 mr-2" /> Add Category
+                            </Button>
+                        </div>
+                        {/* Length Selection */}
+                        <div className="flex flex-wrap gap-4 items-center border p-3 rounded-md bg-muted/20">
+                            <span className="text-sm font-medium text-muted-foreground mr-2">Supported Lengths:</span>
+                            {AVAILABLE_LENGTHS.map((len) => (
+                                <div key={len} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`new-cat-len-${len}`}
+                                        checked={selectedLengths.includes(len)}
+                                        onCheckedChange={() => toggleNewCatLength(len)}
+                                    />
+                                    <Label htmlFor={`new-cat-len-${len}`} className="cursor-pointer">{len}m</Label>
+                                </div>
+                            ))}
+                        </div>
                     </form>
                 </CardContent>
             </Card>
@@ -69,6 +124,7 @@ function CategoryManager() {
                         >
                             <CategoryCard
                                 category={cat}
+                                knownItems={knownItems}
                                 onDelete={() => {
                                     if (confirm(`Delete category "${cat.name}" and all its items?`)) {
                                         deleteCategory(cat.id);
@@ -90,6 +146,7 @@ function CategoryManager() {
 
 function CategoryCard({
     category,
+    knownItems,
     onDelete,
     onRename,
     onUpdateLengths,
@@ -98,9 +155,10 @@ function CategoryCard({
     onDeleteItem
 }: {
     category: InventoryCategory;
+    knownItems: InventoryItem[];
     onDelete: () => void;
     onRename: (name: string) => void;
-    onUpdateLengths: (lengths: number[]) => void;
+    onUpdateLengths: (lengths: MeterOption[]) => void;
     onAddItem: (item: Omit<InventoryItem, "id">) => void;
     onUpdateItem: (id: string, updates: Partial<InventoryItem>) => void;
     onDeleteItem: (id: string) => void;
@@ -108,18 +166,26 @@ function CategoryCard({
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    // Edit State
+    // Edit State for Category
     const [editName, setEditName] = useState(category.name);
-    const [editLengths, setEditLengths] = useState<number[]>(category.supportedLengths || [20, 30, 40, 50]);
+    const [editLengths, setEditLengths] = useState<MeterOption[]>(category.supportedLengths || []);
+
+    // Active Length Tab
+    const activeLengths = category.supportedLengths || [];
+    const [activeTab, setActiveTab] = useState<MeterOption | null>(activeLengths[0] || null);
 
     // New Item State
     const [newItemName, setNewItemName] = useState("");
-    // We now use qtyOverrides to hold new item quantities per length
-    const [newItemQtys, setNewItemQtys] = useState<Record<number, string>>({});
+    const [newItemQty, setNewItemQty] = useState("");
     const [newItemWeight, setNewItemWeight] = useState("");
     const [isAddingItem, setIsAddingItem] = useState(false);
 
-    const activeLengths = category.supportedLengths || [20, 30, 40, 50];
+    // Sync active tab if lengths change
+    if (activeTab === null && activeLengths.length > 0) {
+        setActiveTab(activeLengths[0]);
+    }
+
+    const filteredItems = category.items.filter(item => item.length === activeTab);
 
     const handleSaveEdit = () => {
         if (editName.trim()) {
@@ -129,7 +195,7 @@ function CategoryCard({
         }
     };
 
-    const toggleLength = (val: number) => {
+    const toggleLength = (val: MeterOption) => {
         setEditLengths(prev =>
             prev.includes(val)
                 ? prev.filter(v => v !== val)
@@ -139,27 +205,31 @@ function CategoryCard({
 
     const handleAddItemSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newItemName.trim()) {
-            // Build overrides object
-            const overrides: Record<number, number> = {};
-            activeLengths.forEach(len => {
-                const q = parseInt(newItemQtys[len] || "0");
-                if (!isNaN(q)) overrides[len] = q;
-            });
-
-            // Use 30m as 'defaultQty' fallback or just 0
-            const defaultQ = parseInt(newItemQtys[30] || "0") || 0;
+        if (newItemName.trim() && activeTab && newItemQty) {
+            // Check for duplicates
+            const duplicate = filteredItems.find(i => i.name.toLowerCase() === newItemName.trim().toLowerCase());
+            if (duplicate) {
+                alert(`Item "${duplicate.name}" already exists in ${activeTab}m. Please update its quantity instead.`);
+                return;
+            }
 
             onAddItem({
                 name: newItemName.trim(),
-                defaultQty: defaultQ,
-                qtyOverrides: overrides,
+                length: activeTab,
+                quantity: parseInt(newItemQty),
                 weightPerPcKg: newItemWeight ? parseFloat(newItemWeight) : null,
             });
             setNewItemName("");
-            setNewItemQtys({});
+            setNewItemQty("");
             setNewItemWeight("");
             setIsAddingItem(false);
+        }
+    };
+
+    const handleSuggestionSelect = (item: InventoryItem) => {
+        setNewItemName(item.name);
+        if (item.weightPerPcKg) {
+            setNewItemWeight(item.weightPerPcKg.toString());
         }
     };
 
@@ -173,17 +243,15 @@ function CategoryCard({
 
                     {isEditing ? (
                         <div className="flex flex-col gap-2 flex-1 mr-4">
-                            <div className="flex items-center gap-2 w-full">
-                                <Input
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    className="h-8 w-full"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex flex-wrap gap-3 items-center text-sm border p-2 rounded-md bg-muted/20">
-                                <span className="font-medium text-xs text-muted-foreground">Lengths:</span>
-                                {[20, 30, 40, 50].map((len) => (
+                            <Input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="h-8 w-full"
+                                autoFocus
+                            />
+                            <div className="flex flex-wrap gap-2 items-center text-sm border p-2 rounded-md bg-muted/20">
+                                <span className="font-medium text-xs text-muted-foreground w-full">Supported Lengths:</span>
+                                {AVAILABLE_LENGTHS.map((len) => (
                                     <div key={len} className="flex items-center space-x-1">
                                         <Checkbox
                                             id={`len-${category.id}-${len}`}
@@ -204,11 +272,7 @@ function CategoryCard({
                             <CardTitle className="text-base font-medium">
                                 {category.name} <span className="text-xs text-muted-foreground ml-2 font-normal">({category.items.length} items)</span>
                             </CardTitle>
-                            <div className="flex gap-1 mt-1">
-                                {activeLengths.map(l => (
-                                    <span key={l} className="bg-muted px-1.5 py-0.5 rounded text-[10px] text-muted-foreground">{l}m</span>
-                                ))}
-                            </div>
+
                         </div>
                     )}
                 </div>
@@ -222,66 +286,117 @@ function CategoryCard({
 
             {isExpanded && !isEditing && (
                 <CardContent className="p-0 border-t border-border">
-                    <div className="p-4 space-y-4">
-                        {/* Items List */}
-                        <div className="space-y-2">
-                            {category.items.length === 0 && (
-                                <p className="text-sm text-center text-muted-foreground py-4">No items yet.</p>
-                            )}
-                            {category.items.map(item => (
-                                <ItemRow
-                                    key={item.id}
-                                    item={item}
-                                    activeLengths={activeLengths}
-                                    onUpdate={(updates) => onUpdateItem(item.id, updates)}
-                                    onDelete={() => onDeleteItem(item.id)}
-                                />
-                            ))}
-                        </div>
+                    {/* Tabs */}
+                    <div className="flex overflow-x-auto border-b border-border bg-muted/10 px-4 pt-2 gap-1 scrollbar-hide">
+                        {activeLengths.map(len => (
+                            <button
+                                key={len}
+                                onClick={() => setActiveTab(len)}
+                                className={`
+                                    px-3 py-1.5 text-xs font-medium rounded-t-md border-t border-x border-transparent transition-all
+                                    ${activeTab === len
+                                        ? "bg-background border-border text-primary -mb-px relative z-10"
+                                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                    }
+                                `}
+                            >
+                                {len}m
+                            </button>
+                        ))}
+                        {activeLengths.length === 0 && (
+                            <p className="text-xs text-muted-foreground py-2 italic font-medium">No lengths supported. Edit category to add.</p>
+                        )}
+                    </div>
 
-                        {/* Add Item Form */}
-                        {isAddingItem ? (
-                            <div className="bg-muted/30 p-3 rounded-lg border border-border mt-4">
-                                <h4 className="text-xs font-semibold uppercase mb-2">New Item</h4>
-                                <form onSubmit={handleAddItemSubmit} className="space-y-3">
-                                    <div>
-                                        <Label className="text-xs">Name</Label>
-                                        <Input value={newItemName} onChange={e => setNewItemName(e.target.value)} className="h-8 bg-background" required placeholder="Item Name" />
-                                    </div>
+                    <div className="p-4 space-y-4 min-h-[100px]">
+                        {/* Filtered Items List */}
+                        {activeTab ? (
+                            <div className="space-y-2">
+                                {filteredItems.length === 0 && (
+                                    <p className="text-sm text-center text-muted-foreground py-8 border border-dashed rounded-lg bg-muted/10">
+                                        No items for {activeTab}m.
+                                    </p>
+                                )}
+                                {filteredItems.map(item => (
+                                    <ItemRow
+                                        key={item.id}
+                                        item={item}
+                                        onUpdate={(updates) => onUpdateItem(item.id, updates)}
+                                        onDelete={() => onDeleteItem(item.id)}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-sm text-muted-foreground">Select a length to view items.</div>
+                        )}
 
-                                    <div>
-                                        <Label className="text-xs">Quantities per Length</Label>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                            {activeLengths.map(len => (
-                                                <div key={len} className="w-16">
-                                                    <span className="text-[10px] text-muted-foreground block text-center mb-0.5">{len}m</span>
+                        {/* Add Item Form - Context Aware */}
+                        {activeTab && (
+                            <>
+                                {isAddingItem ? (
+                                    <div className="bg-primary/5 p-3 rounded-lg border border-primary/10 mt-4 animate-in fade-in zoom-in-95">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="text-xs font-bold uppercase text-primary tracking-wider">
+                                                Add Item to {activeTab}m
+                                            </h4>
+                                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setIsAddingItem(false)}>
+                                                <ChevronDown className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                        <form onSubmit={handleAddItemSubmit} className="space-y-3">
+                                            <div className="grid grid-cols-6 gap-3">
+                                                <div className="col-span-3">
+                                                    <Label className="text-xs">Name</Label>
+                                                    <ItemSearchInput
+                                                        value={newItemName}
+                                                        onChange={setNewItemName}
+                                                        onSelect={handleSuggestionSelect}
+                                                        knownItems={knownItems}
+                                                        placeholder="Search or Enter Name"
+                                                    />
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <Label className="text-xs text-muted-foreground">Length</Label>
+                                                    <div className="h-8 flex items-center justify-center bg-muted rounded text-xs font-medium text-muted-foreground">
+                                                        {activeTab}m
+                                                    </div>
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <Label className="text-xs">Qty</Label>
                                                     <Input
                                                         type="number"
-                                                        value={newItemQtys[len] || ""}
-                                                        onChange={e => setNewItemQtys(prev => ({ ...prev, [len]: e.target.value }))}
-                                                        className="h-8 bg-background text-center px-1"
+                                                        value={newItemQty}
+                                                        onChange={e => setNewItemQty(e.target.value)}
+                                                        className="h-8 bg-background px-2"
+                                                        required
                                                         placeholder="0"
                                                     />
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                                <div className="col-span-1">
+                                                    <Label className="text-xs">Wt (kg)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={newItemWeight}
+                                                        onChange={e => setNewItemWeight(e.target.value)}
+                                                        className="h-8 bg-background px-2"
+                                                        placeholder="0"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    <div>
-                                        <Label className="text-xs">Wt/Pc (kg)</Label>
-                                        <Input type="number" step="0.01" value={newItemWeight} onChange={e => setNewItemWeight(e.target.value)} className="h-8 bg-background" placeholder="0" />
+                                            <div className="flex gap-2 pt-1">
+                                                <Button type="button" variant="ghost" size="sm" className="flex-1 h-8 text-xs" onClick={() => setIsAddingItem(false)}>Cancel</Button>
+                                                <Button type="submit" size="sm" className="flex-1 h-8 text-xs">Add Item</Button>
+                                            </div>
+                                        </form>
                                     </div>
-
-                                    <div className="flex gap-2 pt-1">
-                                        <Button type="button" variant="ghost" size="sm" className="flex-1 h-8" onClick={() => setIsAddingItem(false)}>Cancel</Button>
-                                        <Button type="submit" size="sm" className="flex-1 h-8">Save Item</Button>
-                                    </div>
-                                </form>
-                            </div>
-                        ) : (
-                            <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => setIsAddingItem(true)}>
-                                <Plus className="h-3.5 w-3.5 mr-2" /> Add Item
-                            </Button>
+                                ) : (
+                                    <Button variant="outline" size="sm" className="w-full border-dashed text-xs h-9" onClick={() => setIsAddingItem(true)}>
+                                        <Plus className="h-3.5 w-3.5 mr-2" /> Add Item to {activeTab}m
+                                    </Button>
+                                )}
+                            </>
                         )}
                     </div>
                 </CardContent>
@@ -292,74 +407,45 @@ function CategoryCard({
 
 function ItemRow({
     item,
-    activeLengths,
     onUpdate,
     onDelete
 }: {
     item: InventoryItem;
-    activeLengths: number[];
     onUpdate: (updates: Partial<InventoryItem>) => void;
     onDelete: () => void;
 }) {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(item.name);
-    // Initialize overrides from item or default
-    const [qtys, setQtys] = useState<Record<number, string>>(() => {
-        const initial: Record<number, string> = {};
-        activeLengths.forEach(len => {
-            if (item.qtyOverrides && item.qtyOverrides[len] !== undefined) {
-                initial[len] = item.qtyOverrides[len].toString();
-            } else {
-                // Fallback display if no override exists but we want to show something?
-                // Or we can just leave empty to imply 0 or default scaling?
-                // Let's default to item.defaultQty if it's the 30m slot, else empty/0
-                if (len === 30) initial[len] = item.defaultQty.toString();
-            }
-        });
-        return initial;
-    });
+    const [qty, setQty] = useState(item.quantity.toString());
     const [weight, setWeight] = useState(item.weightPerPcKg?.toString() || "");
 
     const handleSave = () => {
-        const overrides: Record<number, number> = {};
-        activeLengths.forEach(len => {
-            const q = parseInt(qtys[len] || "0");
-            if (!isNaN(q)) overrides[len] = q;
-        });
-
-        const defaultQ = parseInt(qtys[30] || "0") || 0;
-
-        onUpdate({
-            name,
-            defaultQty: defaultQ,
-            qtyOverrides: overrides,
-            weightPerPcKg: weight ? parseFloat(weight) : null,
-        });
-        setIsEditing(false);
+        if (name && qty) {
+            onUpdate({
+                name,
+                quantity: parseInt(qty),
+                weightPerPcKg: weight ? parseFloat(weight) : null,
+            });
+            setIsEditing(false);
+        }
     };
 
     if (isEditing) {
         return (
-            <div className="flex flex-col gap-2 p-3 bg-muted/40 rounded-md border border-primary/20">
-                <Input value={name} onChange={e => setName(e.target.value)} className="h-8 bg-background" placeholder="Name" />
-
-                <div className="flex flex-wrap gap-2">
-                    {activeLengths.map(len => (
-                        <div key={len} className="flex-1 min-w-[3rem]">
-                            <label className="text-[10px] text-muted-foreground block text-center">{len}m</label>
-                            <Input
-                                type="number"
-                                value={qtys[len] || ""}
-                                onChange={e => setQtys(prev => ({ ...prev, [len]: e.target.value }))}
-                                className="h-8 bg-background text-center px-1"
-                            />
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-1">
-                    <label className="text-xs text-muted-foreground">Wt/Pc</label>
-                    <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value)} className="h-8 bg-background" placeholder="0" />
+            <div className="flex flex-col gap-2 p-3 bg-muted/40 rounded-md border border-primary/20 animate-in fade-in">
+                <div className="grid grid-cols-4 gap-2">
+                    <div className="col-span-2">
+                        <Label className="text-[10px] text-muted-foreground">Name</Label>
+                        <Input value={name} onChange={e => setName(e.target.value)} className="h-8 bg-background" placeholder="Name" />
+                    </div>
+                    <div className="col-span-1">
+                        <Label className="text-[10px] text-muted-foreground">Qty</Label>
+                        <Input type="number" value={qty} onChange={e => setQty(e.target.value)} className="h-8 bg-background" placeholder="0" />
+                    </div>
+                    <div className="col-span-1">
+                        <Label className="text-[10px] text-muted-foreground">Wt/Pc</Label>
+                        <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value)} className="h-8 bg-background" placeholder="0" />
+                    </div>
                 </div>
 
                 <div className="flex gap-2 justify-end mt-2">
@@ -371,25 +457,14 @@ function ItemRow({
     }
 
     return (
-        <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-md group">
+        <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-md group transition-colors">
             <div className="flex-1 min-w-0 pr-2">
-                <p className="font-medium text-sm truncate">{item.name}</p>
+                <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm truncate">{item.name}</p>
+                </div>
                 <div className="flex gap-3 text-xs text-muted-foreground mt-0.5">
-                    {/* Show summary of quantities */}
-                    <div className="flex gap-2">
-                        {activeLengths.map(len => {
-                            const q = item.qtyOverrides?.[len];
-                            if (q !== undefined && q > 0) {
-                                return <span key={len} className="bg-muted px-1 rounded">{len}m: {q}</span>;
-                            }
-                            // Fallback for classic defaultQty if no override
-                            if (len === 30 && (!item.qtyOverrides || !item.qtyOverrides[30]) && item.defaultQty > 0) {
-                                return <span key={len} className="bg-muted px-1 rounded">30m: {item.defaultQty}</span>
-                            }
-                            return null;
-                        })}
-                    </div>
-                    <span>Wt: <span className="text-foreground font-medium">{item.weightPerPcKg ?? "-"}</span> kg</span>
+                    <span>Qty: <span className="font-medium text-foreground">{item.quantity}</span></span>
+                    <span>Wt: <span className="font-medium text-foreground">{item.weightPerPcKg ?? "-"}</span> kg</span>
                 </div>
             </div>
             <div className="flex items-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -405,3 +480,4 @@ function ItemRow({
         </div>
     )
 }
+

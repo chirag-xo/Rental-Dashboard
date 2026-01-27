@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { mergeDuplicateCategories } from "@/utils/migrationHelpers";
 
 // --- Types ---
 
-export type MeterOption = 20 | 30 | 40 | 50;
+export type MeterOption = 10 | 15 | 20 | 25 | 30 | 40 | 50 | 60;
+export const AVAILABLE_LENGTHS: MeterOption[] = [10, 15, 20, 25, 30, 40, 50, 60];
 
 export type InventoryItem = {
     id: string;
     name: string;
-    defaultQty: number; // per 30m package
-    qtyOverrides?: Record<number, number>; // Explicit quantities for specific lengths (20, 30, 40, 50)
+    length: MeterOption; // Explicit length
+    quantity: number;    // Explicit quantity for this length
     weightPerPcKg: number | null;
 };
 
@@ -17,7 +19,7 @@ export type InventoryCategory = {
     id: string;
     name: string;
     items: InventoryItem[];
-    supportedLengths?: number[]; // Added: defaults to [20, 30, 40, 50] if undefined
+    supportedLengths: MeterOption[]; // Strictly typed now
 };
 
 export type InventoryDB = {
@@ -28,77 +30,110 @@ export type InventoryDB = {
 // --- Constants ---
 
 const STORAGE_KEY = "jd_rentals_inventory_v1";
-const STORAGE_VERSION = 1;
+// Increment version to force migration/reset
+const STORAGE_VERSION = 4;
 
-// Seed Data (from original packages.ts)
+// Seed Data
+// We need to expand the original "Template Items" into explicit items for each length.
+// Original scaling logic: 20m: 0.67, 30m: 1.0, 40m: 1.33, 50m: 1.67
+// Default lengths usually supported: 20, 30, 40, 50
+
+const BASE_LENGTHS: MeterOption[] = [30];
+
+const generateItems = (baseName: string, weight: number | null, baseQty30m: number): InventoryItem[] => {
+    return BASE_LENGTHS.map(len => {
+        let scale = 1.0;
+        if (len === 10) scale = 0.33;
+        if (len === 15) scale = 0.5;
+        if (len === 20) scale = 0.67;
+        if (len === 25) scale = 0.83;
+        if (len === 40) scale = 1.33;
+        if (len === 50) scale = 1.67;
+        if (len === 60) scale = 2.0;
+
+        return {
+            id: uuidv4(),
+            name: baseName,
+            length: len,
+            quantity: Math.round(baseQty30m * scale) || 1,
+            weightPerPcKg: weight
+        };
+    });
+};
+
 const SEED_DATA: InventoryCategory[] = [
     {
         id: "cat-ring",
         name: "Ring",
+        supportedLengths: AVAILABLE_LENGTHS,
         items: [
-            { id: "item-ring-1", name: "Rafter 2 Patti", weightPerPcKg: 55.31, defaultQty: 4 },
-            { id: "item-ring-2", name: "Rafter 3 Patti", weightPerPcKg: 56.92, defaultQty: 2 },
-            { id: "item-ring-3", name: "Piller with Gulla", weightPerPcKg: 53.99, defaultQty: 2 },
-            { id: "item-ring-4", name: "Kanplate", weightPerPcKg: 14.99, defaultQty: 4 },
-            { id: "item-ring-5", name: "Base plate", weightPerPcKg: 17.34, defaultQty: 2 },
-            { id: "item-ring-6", name: "Alluminium Jointer", weightPerPcKg: 13.28, defaultQty: 4 },
-            { id: "item-ring-7", name: "V Jointer", weightPerPcKg: 32.63, defaultQty: 1 },
-            { id: "item-ring-8", name: "Side brasing", weightPerPcKg: 24.29, defaultQty: 2 },
-            { id: "item-ring-9", name: "Centre brasing", weightPerPcKg: 18.26, defaultQty: 1 },
-            { id: "item-ring-10", name: "Khunte", weightPerPcKg: 3.26, defaultQty: 8 },
-            { id: "item-ring-11", name: "Rachit belt", weightPerPcKg: 1.47, defaultQty: 2 },
-            { id: "item-ring-12", name: "Nut bolt", weightPerPcKg: 0.27, defaultQty: 32 },
-            { id: "item-ring-13", name: "I bolt", weightPerPcKg: 0.24, defaultQty: 24 },
-        ],
+            ...generateItems("Rafter 2 Patti", 55.31, 4),
+            ...generateItems("Rafter 3 Patti", 56.92, 2),
+            ...generateItems("Piller with Gulla", 53.99, 2),
+            ...generateItems("Kanplate", 14.99, 4),
+            ...generateItems("Base plate", 17.34, 2),
+            ...generateItems("Alluminium Jointer", 13.28, 4),
+            ...generateItems("V Jointer", 32.63, 1),
+            ...generateItems("Side brasing", 24.29, 2),
+            ...generateItems("Centre brasing", 18.26, 1),
+            ...generateItems("Khunte", 3.26, 8),
+            ...generateItems("Rachit belt", 1.47, 2),
+            ...generateItems("Nut bolt", 0.27, 32),
+            ...generateItems("I bolt", 0.24, 24),
+        ]
     },
     {
         id: "cat-bay",
         name: "Bay",
+        supportedLengths: AVAILABLE_LENGTHS,
         items: [
-            { id: "item-bay-1", name: "Side Parling", weightPerPcKg: 20.21, defaultQty: 2 },
-            { id: "item-bay-2", name: "Centre Parling", weightPerPcKg: 20.21, defaultQty: 1 },
-            { id: "item-bay-3", name: "Patle Parling", weightPerPcKg: 10.7, defaultQty: 12 },
-            { id: "item-bay-4", name: "Tirpal Pipe", weightPerPcKg: 15.52, defaultQty: 2 },
-        ],
+            ...generateItems("Side Parling", 20.21, 2),
+            ...generateItems("Centre Parling", 20.21, 1),
+            ...generateItems("Patle Parling", 10.7, 12),
+            ...generateItems("Tirpal Pipe", 15.52, 2),
+        ]
     },
     {
         id: "cat-fabric",
         name: "Fabric",
+        supportedLengths: AVAILABLE_LENGTHS,
         items: [
-            { id: "item-fabric-1", name: "Tirpal 30m", weightPerPcKg: 154.6, defaultQty: 1 },
-            { id: "item-fabric-2", name: "Parde 4.5m", weightPerPcKg: 25.95, defaultQty: 1 },
-            { id: "item-fabric-3", name: "D Set 30m", weightPerPcKg: 97.45, defaultQty: 1 },
-        ],
+            ...generateItems("Tirpal", 154.6, 1),
+            ...generateItems("Parde 4.5m", 25.95, 1),
+            ...generateItems("D Set 30m", 97.45, 1),
+        ]
     },
     {
         id: "cat-fasad",
         name: "Fasad",
+        supportedLengths: AVAILABLE_LENGTHS,
         items: [
-            { id: "item-fasad-1", name: "Fasad Piller", weightPerPcKg: 20.16, defaultQty: 5 },
-            { id: "item-fasad-2", name: "Fasad Top 14f", weightPerPcKg: 23.17, defaultQty: 1 },
-            { id: "item-fasad-3", name: "Fasad Top 9f", weightPerPcKg: 15.3, defaultQty: 2 },
-            { id: "item-fasad-4", name: "Fasad Top 1m", weightPerPcKg: 10.37, defaultQty: 2 },
-            { id: "item-fasad-5", name: "Fasad Parling", weightPerPcKg: 20.21, defaultQty: 6 },
-        ],
+            ...generateItems("Fasad Piller", 20.16, 5),
+            ...generateItems("Fasad Top 14f", 23.17, 1),
+            ...generateItems("Fasad Top 9f", 15.3, 2),
+            ...generateItems("Fasad Top 1m", 10.37, 2),
+            ...generateItems("Fasad Parling", 20.21, 6),
+        ]
     },
     {
         id: "cat-others",
         name: "Others",
+        supportedLengths: AVAILABLE_LENGTHS,
         items: [
-            { id: "item-others-1", name: "Cross Pipe", weightPerPcKg: 19.04, defaultQty: 1 },
-            { id: "item-others-2", name: "Bracket", weightPerPcKg: 2.3, defaultQty: 1 },
-            { id: "item-others-3", name: "Rassa", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-4", name: "Hammer", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-5", name: "Chabi pana", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-6", name: "Line dori", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-7", name: "Inch Tap", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-8", name: "Safty belt", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-9", name: "Safty Helmat", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-10", name: "Balla Pipe", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-11", name: "Rope wire", weightPerPcKg: 6.47, defaultQty: 1 },
-            { id: "item-others-12", name: "Rajai Gadde", weightPerPcKg: null, defaultQty: 1 },
-            { id: "item-others-13", name: "Sidi", weightPerPcKg: null, defaultQty: 1 },
-        ],
+            ...generateItems("Cross Pipe", 19.04, 1),
+            ...generateItems("Bracket", 2.3, 1),
+            ...generateItems("Rassa", null, 1),
+            ...generateItems("Hammer", null, 1),
+            ...generateItems("Chabi pana", null, 1),
+            ...generateItems("Line dori", null, 1),
+            ...generateItems("Inch Tap", null, 1),
+            ...generateItems("Safty belt", null, 1),
+            ...generateItems("Safty Helmat", null, 1),
+            ...generateItems("Balla Pipe", null, 1),
+            ...generateItems("Rope wire", 6.47, 1),
+            ...generateItems("Rajai Gadde", null, 1),
+            ...generateItems("Sidi", null, 1),
+        ]
     },
 ];
 
@@ -107,7 +142,6 @@ const SEED_DATA: InventoryCategory[] = [
 export function useInventory() {
     const [categories, setCategories] = useState<InventoryCategory[]>([]);
     const [loading, setLoading] = useState(true);
-
     // Load from localStorage on mount
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -115,9 +149,11 @@ export function useInventory() {
             try {
                 const parsed: InventoryDB = JSON.parse(stored);
                 if (parsed.version === STORAGE_VERSION) {
-                    setCategories(parsed.categories);
+                    // Migration: Merge duplicates on load
+                    const merged = mergeDuplicateCategories(parsed.categories);
+                    setCategories(merged);
                 } else {
-                    // Handle migration if needed, for now just reset
+                    // Reset if version mismatch
                     seedData();
                 }
             } catch (e) {
@@ -130,32 +166,55 @@ export function useInventory() {
         setLoading(false);
     }, []);
 
-    // Save to localStorage whenever categories change (but not on initial load)
+    // Save to localStorage on change
     useEffect(() => {
-        if (!loading && categories.length > 0) {
-            const db: InventoryDB = {
+        if (!loading) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
                 version: STORAGE_VERSION,
-                categories,
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+                categories
+            }));
         }
     }, [categories, loading]);
 
     const seedData = () => {
-        setCategories(SEED_DATA);
+        // Also ensure seed data is merged just in case
+        setCategories(mergeDuplicateCategories(SEED_DATA));
     };
 
     // --- Actions ---
 
-    const addCategory = (name: string) => {
+    const addCategory = (name: string, supportedLengths: MeterOption[] = [20, 30, 40, 50]): { success: boolean, message?: string } => {
+        const normalizedName = name.trim();
+        const existingCat = categories.find(c => c.name.toLowerCase() === normalizedName.toLowerCase());
+
+        if (existingCat) {
+            // Merge logic
+            const currentLengths = new Set(existingCat.supportedLengths || []);
+            const newLengthsToAdd = supportedLengths.filter(l => !currentLengths.has(l));
+
+            if (newLengthsToAdd.length === 0) {
+                return { success: false, message: `Category "${existingCat.name}" already supports these lengths.` };
+            }
+
+            const updatedLengths = [...existingCat.supportedLengths, ...newLengthsToAdd].sort((a, b) => a - b);
+
+            setCategories((prev) =>
+                prev.map((cat) => (cat.id === existingCat.id ? { ...cat, supportedLengths: updatedLengths } : cat))
+            );
+
+            return { success: true, message: `Merged new lengths into existing category "${existingCat.name}".` };
+        }
+
         const newCat: InventoryCategory = {
             id: uuidv4(),
-            name,
+            name: normalizedName,
             items: [],
-            supportedLengths: [20, 30, 40, 50], // Default to all
+            supportedLengths,
         };
         setCategories((prev) => [...prev, newCat]);
+        return { success: true };
     };
+
 
     const updateCategory = (id: string, name: string) => {
         setCategories((prev) =>
@@ -167,7 +226,7 @@ export function useInventory() {
         setCategories((prev) => prev.filter((cat) => cat.id !== id));
     };
 
-    const updateCategoryLengths = (id: string, lengths: number[]) => {
+    const updateCategoryLengths = (id: string, lengths: MeterOption[]) => {
         setCategories((prev) =>
             prev.map((cat) => (cat.id === id ? { ...cat, supportedLengths: lengths } : cat))
         );
@@ -212,7 +271,6 @@ export function useInventory() {
     const importData = (jsonString: string) => {
         try {
             const parsed = JSON.parse(jsonString);
-            // Basic validation
             if (Array.isArray(parsed.categories)) {
                 setCategories(parsed.categories);
                 return true;
@@ -235,6 +293,19 @@ export function useInventory() {
         seedData();
     }
 
+    const getAllKnownItems = (): InventoryItem[] => {
+        const allItems = new Map<string, InventoryItem>();
+        categories.forEach(cat => {
+            cat.items.forEach(item => {
+                const key = item.name.trim().toLowerCase();
+                if (!allItems.has(key)) {
+                    allItems.set(key, item);
+                }
+            });
+        });
+        return Array.from(allItems.values());
+    };
+
     return {
         categories,
         loading,
@@ -247,6 +318,7 @@ export function useInventory() {
         deleteItem,
         importData,
         exportData,
-        resetToDefault
+        resetToDefault,
+        getAllKnownItems
     };
 }

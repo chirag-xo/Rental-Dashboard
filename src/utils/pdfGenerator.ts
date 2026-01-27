@@ -55,14 +55,35 @@ export function generatePDF(
 
     finalY += 18 + (splitSummary.length * 5);
 
-    // Items Table
-    // Group items by category to make table cleaner
-    // We'll sort by category first
-    const sortedItems = [...items].sort((a, b) => a.category.localeCompare(b.category));
+    // --- Aggregation Logic ---
+    const aggregated = new Map<string, {
+        name: string,
+        qty: number,
+        weightPerPc: number | null,
+        totalWeight: number
+    }>();
+
+    items.forEach(item => {
+        const key = item.name.trim().toLowerCase();
+        const existing = aggregated.get(key);
+
+        if (existing) {
+            existing.qty += item.qty;
+            existing.totalWeight += (item.totalWeight || 0);
+        } else {
+            aggregated.set(key, {
+                name: item.name, // Use original casing from first occurrence
+                qty: item.qty,
+                weightPerPc: item.weightPerPc,
+                totalWeight: item.totalWeight || 0
+            });
+        }
+    });
+
+    const sortedItems = Array.from(aggregated.values()).sort((a, b) => a.name.localeCompare(b.name));
 
     const tableRows = sortedItems.map((item) => [
-        item.category,
-        item.name + (item.isCustom ? " (Custom)" : ""),
+        item.name,
         item.qty,
         item.weightPerPc !== null ? item.weightPerPc.toFixed(2) + " kg" : "---",
         item.totalWeight !== null ? item.totalWeight.toFixed(2) + " kg" : "---",
@@ -70,19 +91,16 @@ export function generatePDF(
 
     autoTable(doc, {
         startY: finalY,
-        head: [["Category", "Item Name", "Qty", "Weight/Pc", "Total Weight"]],
+        head: [["Item Name", "Qty", "Weight/Pc", "Total Weight"]],
         body: tableRows,
         theme: "striped",
         headStyles: { fillColor: [26, 26, 26], textColor: [212, 175, 55] }, // Charcoal + Gold
         columnStyles: {
-            0: { fontStyle: "bold" },
-            4: { fontStyle: "bold", halign: "right" },
-            3: { halign: "right" },
-            2: { halign: "center" },
+            0: { fontStyle: "bold" }, // Name
+            3: { fontStyle: "bold", halign: "right" }, // Total Weight
+            2: { halign: "right" }, // Unit Weight
+            1: { halign: "center" }, // Qty
         },
-        // Grouping manually via row spans is complex in autotable, so we just list category 
-        // or we could use 'didDrawPage' to add category headers. 
-        // For simplicity, we just show category in column 0.
     });
 
     // Totals Section
