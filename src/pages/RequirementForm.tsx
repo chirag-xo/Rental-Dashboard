@@ -10,10 +10,10 @@ import { RefreshCcw, ArrowRight } from "lucide-react";
 // import { toast } from "sonner"; // If we had a toast library, for now alert
 
 import { useInventory } from "@/store/inventoryStore";
-
-
 import { DirectItemAdder } from "@/components/DirectItemAdder";
 import { type CustomItem } from "@/hooks/usePersistence";
+import { v4 as uuidv4 } from "uuid";
+// ... imports
 
 export default function RequirementForm() {
     const navigate = useNavigate();
@@ -24,28 +24,34 @@ export default function RequirementForm() {
 
     const isLoaded = isPersistenceLoaded && !isInventoryLoading;
 
-    // Load from persistence once ready
     // Load and merge persistence with dynamic categories
     useEffect(() => {
         if (isLoaded && categories.length > 0) {
             const initialSelection: SelectionState = {};
 
-            // initialize all categories with default 0
+            // initialize all categories with default one item
             categories.forEach(cat => {
                 const defaultMeter = cat.supportedLengths?.[0] || 30;
-                initialSelection[cat.name] = { meter: defaultMeter, qty: 0 };
+                // Array based: one default item
+                initialSelection[cat.name] = [{
+                    id: uuidv4(),
+                    meter: defaultMeter,
+                    qty: 0
+                }];
             });
 
             // merge persisted data
             if (persistentData.selection && Object.keys(persistentData.selection).length > 0) {
                 Object.entries(persistentData.selection).forEach(([key, val]) => {
-                    if (initialSelection[key]) {
+                    // val is now SelectionItem[] due to migration in usePersistence
+                    if (val && val.length > 0) {
                         initialSelection[key] = val;
                     }
                 });
             }
 
             setSelection(initialSelection);
+            // ...
 
             // Load direct items
             if (persistentData.directItems) {
@@ -54,14 +60,59 @@ export default function RequirementForm() {
         }
     }, [isLoaded, persistentData.selection, persistentData.directItems, categories]);
 
-    const handleUpdate = (category: string, field: "meter" | "qty", value: string) => {
-        setSelection((prev) => ({
-            ...prev,
-            [category]: {
-                ...prev[category],
-                [field]: parseInt(value, 10),
-            },
-        }));
+    const handleUpdate = (category: string, id: string, field: "meter" | "qty", value: string) => {
+        setSelection((prev) => {
+            const catItems = prev[category] ? [...prev[category]] : [];
+            const index = catItems.findIndex(i => i.id === id);
+
+            if (index !== -1) {
+                // Update item at index
+                catItems[index] = {
+                    ...catItems[index],
+                    [field]: parseInt(value, 10),
+                };
+            }
+            return { ...prev, [category]: catItems };
+        });
+    };
+
+    const handleAddSize = (category: string) => {
+        setSelection((prev) => {
+            const catItems = prev[category] ? [...prev[category]] : [];
+            // Default new item logic
+            // Find category to get supported lengths default
+            const catDef = categories.find(c => c.name === category);
+            const defaultMeter = catDef?.supportedLengths?.[0] || 30;
+
+            catItems.push({
+                id: uuidv4(),
+                meter: defaultMeter,
+                qty: 1 // Helper: start with 1 qty when adding explicitly? or 0? 1 feels better UX.
+            });
+
+            return { ...prev, [category]: catItems };
+        });
+    };
+
+    const handleRemoveSize = (category: string, id: string) => {
+        setSelection((prev) => {
+            const catItems = prev[category] ? prev[category].filter(i => i.id !== id) : [];
+
+            // If all items removed, add back a default 0-qty item?
+            // Or allow empty array? The UI should probably handle empty array by showing 
+            // "No size selected" or auto-adding default. 
+            // Let's enforce at least one item? Or allow true "removal".
+            // If we allow true removal, user loop needs to handle empty array.
+            // Let's default to preserving at least 1 item if user removes the last one, 
+            // effectively resetting it.
+            if (catItems.length === 0) {
+                const catDef = categories.find(c => c.name === category);
+                const defaultMeter = catDef?.supportedLengths?.[0] || 30;
+                catItems.push({ id: uuidv4(), meter: defaultMeter, qty: 0 });
+            }
+
+            return { ...prev, [category]: catItems };
+        });
     };
 
     // Direct Item Handlers
@@ -95,26 +146,31 @@ export default function RequirementForm() {
             const resetState: SelectionState = {};
             categories.forEach(cat => {
                 const defaultMeter = cat.supportedLengths?.[0] || 30;
-                resetState[cat.name] = { meter: defaultMeter, qty: 0 };
+                resetState[cat.name] = [{
+                    id: uuidv4(),
+                    meter: defaultMeter,
+                    qty: 0
+                }];
             });
             setSelection(resetState);
             setDirectItems([]);
+            // Cast to any if data types conflict temporarily, but PersistedData type in usePersistence handles it now.
             saveState({ selection: resetState, directItems: [] });
         }
     };
 
     const handleNext = () => {
-        // Validation: At least one item with qty > 0 OR one direct item
-        const hasSelection = Object.values(selection).some((s) => s.qty > 0);
-        const hasDirectItems = directItems.length > 0;
+        try {
 
-        if (!hasSelection && !hasDirectItems) {
-            alert("Please select at least one package quantity OR add a direct item.");
-            return;
+
+
+
+            saveState({ selection, directItems });
+            navigate("/review");
+        } catch (error) {
+            console.error("Navigation error:", error);
+            alert("An error occurred during navigation. Please check the console or try Resetting the form.");
         }
-
-        saveState({ selection, directItems });
-        navigate("/review");
     };
 
     if (!isLoaded) return <div className="p-8 text-center">Loading...</div>;
@@ -144,17 +200,52 @@ export default function RequirementForm() {
                     </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {categories.map((cat) => (
-                        <CategoryRow
-                            key={cat.id}
-                            category={cat.name}
-                            selectedMeter={selection[cat.name]?.meter?.toString() || (cat.supportedLengths?.[0]?.toString() || "30")}
-                            selectedQty={selection[cat.name]?.qty?.toString() || "0"}
-                            validLengths={cat.supportedLengths}
-                            onMeterChange={(v) => handleUpdate(cat.name, "meter", v)}
-                            onQtyChange={(v) => handleUpdate(cat.name, "qty", v)}
-                        />
+                        <div key={cat.id} className="space-y-2">
+                            {/* Loop through selections for this category */}
+                            {Array.isArray(selection[cat.name]) && selection[cat.name].map((item) => (
+                                <div key={item.id} className="relative group">
+                                    <CategoryRow
+                                        category={cat.name} // You might want to hide name for 2nd+ rows? 
+                                        // Let's pass a prop to hide label if needed, or keep it simple.
+                                        // keeping it simple: just render row.
+                                        selectedMeter={item.meter.toString()}
+                                        selectedQty={item.qty.toString()}
+                                        validLengths={cat.supportedLengths}
+                                        onMeterChange={(v) => handleUpdate(cat.name, item.id, "meter", v)}
+                                        onQtyChange={(v) => handleUpdate(cat.name, item.id, "qty", v)}
+                                    />
+                                    {/* Remove Button for multi-row or even single row reset */}
+                                    <div className="absolute right-2 top-2">
+                                        {(selection[cat.name]?.length > 1 || item.qty > 0) && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                                onClick={() => handleRemoveSize(cat.name, item.id)}
+                                                title="Remove size"
+                                            >
+                                                <span className="sr-only">Remove</span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Add Size Button */}
+                            <div className="flex justify-end px-2">
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="text-xs text-primary h-auto py-1"
+                                    onClick={() => handleAddSize(cat.name)}
+                                >
+                                    + Add another size
+                                </Button>
+                            </div>
+                        </div>
                     ))}
                 </div>
 

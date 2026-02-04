@@ -10,6 +10,7 @@ export type CalculatedItem = {
     weightPerPc: number | null;
     totalWeight: number | null;
     isCustom?: boolean;
+    length?: number; // Add length field
 };
 
 /**
@@ -49,6 +50,7 @@ export function getPackageItems(
             weightPerPc: item.weightPerPcKg,
             totalWeight,
             isCustom: false,
+            length: item.length // distinct by length
         };
     });
 }

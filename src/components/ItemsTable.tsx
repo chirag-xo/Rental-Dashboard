@@ -81,6 +81,11 @@ export function ItemsTable({ items, onUpdateQty }: ItemsTableProps) {
                                     <TableRow key={`${cat}-${idx}`}>
                                         <TableCell className="font-medium">
                                             {item.name}
+                                            {(item as any).length && (
+                                                <span className="text-muted-foreground text-xs ml-1">
+                                                    ({(item as any).length}m)
+                                                </span>
+                                            )}
                                             {item.isCustom && (
                                                 <Badge variant="outline" className="ml-2 text-[10px] h-4 px-1">
                                                     Custom

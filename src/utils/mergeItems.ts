@@ -11,7 +11,9 @@ export function mergeItems(items: CalculatedItem[]): CalculatedItem[] {
     const map = new Map<string, CalculatedItem>();
 
     for (const item of items) {
-        const key = normalizeItemName(item.name);
+        // Include length in merge key to keep same items with different lengths separate
+        const lengthSuffix = (item as any).length ? `_${(item as any).length}m` : '';
+        const key = normalizeItemName(item.name) + lengthSuffix;
 
         if (map.has(key)) {
             const existing = map.get(key)!;

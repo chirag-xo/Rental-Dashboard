@@ -4,8 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { type CustomItem } from "@/hooks/usePersistence";
-import { useInventory, type InventoryItem } from "@/store/inventoryStore";
+import { useInventory, type InventoryItem, AVAILABLE_LENGTHS } from "@/store/inventoryStore";
 import { v4 as uuidv4 } from "uuid";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 type CustomItemAdderProps = {
     onAdd: (item: CustomItem) => void;
@@ -16,6 +23,7 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
     const [name, setName] = useState("");
     const [qty, setQty] = useState("1");
     const [weight, setWeight] = useState("");
+    const [length, setLength] = useState<string>("30"); // Default to 30m
 
     // Search state
     const { categories } = useInventory();
@@ -60,12 +68,14 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
             name,
             qty: parseInt(qty) || 1,
             weightPerPc: parseFloat(weight) || 0,
+            length: parseInt(length), // Add length field
         });
 
         // Reset
         setName("");
         setQty("1");
         setWeight("");
+        setLength("30"); // Reset to default
         setIsOpen(false);
         setShowSuggestions(false);
     };
@@ -126,7 +136,22 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                        <Label htmlFor="length">Length (m)</Label>
+                        <Select value={length} onValueChange={setLength}>
+                            <SelectTrigger id="length" className="h-10">
+                                <SelectValue placeholder="Select length" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {AVAILABLE_LENGTHS.map((len) => (
+                                    <SelectItem key={len} value={len.toString()}>
+                                        {len}m
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="space-y-1">
                         <Label htmlFor="qty">Quantity</Label>
                         <Input id="qty" type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} required />

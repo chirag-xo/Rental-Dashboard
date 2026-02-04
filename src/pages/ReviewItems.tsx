@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { StepIndicator } from "@/components/StepIndicator";
 import { Button } from "@/components/ui/button";
@@ -19,26 +19,7 @@ export default function ReviewItems() {
 
     const isLoaded = isPersistenceLoaded && !isInventoryLoading;
 
-    // Redirect if empty
-    const hasSelection = useMemo(() => {
-        if (!data.selection) return false;
-        // Also check direct items? actually if direct items exist, we shouldn't redirect?
-        // But original logic only checked selection. RequirementForm now allows direct items only.
-        // So we should update this check too!
-        // "Step 1 validation passes if either... OR direct item added"
-        // So here we should allow if selection OR direct items.
-        // But `data.selection` might be empty object if clearState called.
-        // Let's rely on data check.
-        const hasDirect = data.directItems && data.directItems.length > 0;
-        const hasSel = data.selection && Object.values(data.selection).some((s) => s.qty > 0);
-        return hasDirect || hasSel;
-    }, [data.selection, data.directItems]);
 
-    useEffect(() => {
-        if (isLoaded && !hasSelection) {
-            navigate("/");
-        }
-    }, [isLoaded, hasSelection, navigate]);
 
     const { items, categoryTotals, grandTotalKnown, missingWeightCount } = useMemo(
         () => calculateRequirements(
@@ -64,8 +45,7 @@ export default function ReviewItems() {
     // Let's keep it simple for now, as `items` table in PDF is the source of truth.
 
     const summaryText = Object.entries(data.selection || {})
-        .filter(([_, val]) => val.qty > 0)
-        .map(([cat, val]) => `${cat} (${val.meter}m) x ${val.qty}`)
+        .flatMap(([cat, items]) => items.filter(i => i.qty > 0).map(i => `${cat} (${i.meter}m) x ${i.qty}`))
         .join(", ");
 
     const handleDownloadPDF = () => {
@@ -95,7 +75,7 @@ export default function ReviewItems() {
         });
     };
 
-    if (!isLoaded || !hasSelection) return <div className="p-8 text-center">Loading...</div>;
+    if (!isLoaded) return <div className="p-8 text-center">Loading...</div>;
 
     return (
         <Layout title="Review Requirements" subtitle="Verify items and generate report">
@@ -110,14 +90,13 @@ export default function ReviewItems() {
                 <div className="bg-card border border-border p-4 rounded-xl shadow-sm space-y-3">
                     <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Selected Packages</h3>
                     <div className="flex flex-wrap gap-2">
-                        {Object.entries(data.selection).map(([cat, val]) => {
-                            if (val.qty === 0) return null;
-                            return (
-                                <div key={cat} className="bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full text-sm font-medium">
-                                    {cat} {val.meter}m <span className="text-foreground/70">× {val.qty}</span>
+                        {Object.entries(data.selection).flatMap(([cat, items]) =>
+                            items.filter(item => item.qty > 0).map((item) => (
+                                <div key={`${cat}-${item.id}`} className="bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full text-sm font-medium">
+                                    {cat} {item.meter}m <span className="text-foreground/70">× {item.qty}</span>
                                 </div>
-                            )
-                        })}
+                            ))
+                        )}
                     </div>
                 </div>
 

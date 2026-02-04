@@ -28,55 +28,25 @@ export function calculateRequirements(
     let rawItems: CalculatedItem[] = [];
 
     // 1. Process standard packages (based on dynamic inventory)
-    Object.entries(selection).forEach(([catName, { meter, qty }]) => {
-        if (qty > 0) {
-            const category = inventoryCategories.find(c => c.name === catName);
+    // 1. Process standard packages (based on dynamic inventory)
+    Object.entries(selection).forEach(([catName, items]) => {
+        // items is SelectionItem[]
+        if (Array.isArray(items)) {
+            items.forEach(({ meter, qty }) => {
+                if (qty > 0) {
+                    const category = inventoryCategories.find(c => c.name === catName);
 
-            if (category) {
-                const items = getPackageItems(
-                    category.items,
-                    catName,
-                    meter as MeterOption,
-                    qty
-                );
-                // Apply overrides later or now? 
-                // Plan: Standard items -> Direct Items -> Custom Items -> MERGE -> Apply Overrides to Merged?
-                // actually overrides key is name. If we merge first, then override.
-                // But the current logic applies overrides to package items immediately.
-                // Let's keep it consistent: gather all raw items first.
-                // Wait, previous logic applied overrides here. 
-                // If we merge, we might lose individual override targeting if names overlap?
-                // But "Rajaigad" is "Rajaigad". Override for "Rajaigad" should apply to the total?
-                // Or does override apply only to package items? 
-                // "Editable quantities" in Step 2 usually maps to `overrides`.
-                // So yes, we should produce raw items, MERGE them, then applying overrides might be tricky
-                // because overrides are "absolute values" usually?
-                // No, existing override logic:
-                // const newQty = overrides[item.name].qty || 0;
-                // It REPLACES the qty.
-                // If we have 2 sources of "Clamp", say 10 from Cat A, 5 from Direct. Total 15.
-                // If user edits to 20 in Step 2. Then override says "Clamp" = 20.
-                // This implies overrides should be applied AFTER merging.
-                // But wait, the existing code applies overrides inside the loop.
-                // If I change that, I must ensure `mergeItems` doesn't double count or something.
-
-                // Let's collect RAW items first without overrides from packages.
-                // BUT `getPackageItems` returns standard counts.
-                // Previous code:
-                /*
-                 const itemsWithOverrides = items.map(item => {
-                    if (overrides[item.name]) { ... return { ...item, qty: override } } 
-                 });
-                */
-                // If I have "Clamp" from Cat A (10) and Cat B (10). Total 20.
-                // If I override "Clamp" to 25.
-                // If I applied checks individually: Cat A Clamp -> 25? Cat B Clamp -> 25? Total 50? wrong.
-                // Overrides are usually per "Row" in Step 2.
-                // Since Step 2 rows are unique by name (Merged), the override applies to the Name.
-                // So: Collect ALL raw items -> MERGE -> APPLY OVERRIDES.
-
-                rawItems.push(...items);
-            }
+                    if (category) {
+                        const packageItems = getPackageItems(
+                            category.items,
+                            catName,
+                            meter as MeterOption,
+                            qty
+                        );
+                        rawItems.push(...packageItems);
+                    }
+                }
+            });
         }
     });
 
@@ -91,7 +61,8 @@ export function calculateRequirements(
             totalWeight: totalWeight,
             isCustom: false, // It's "Direct", not "Custom" in the sense of Step 2 add? Or is it?
             // Step 2 custom added items are `customItems`.
-        });
+            ...(d.length && { length: d.length }), // Include length if present
+        } as CalculatedItem);
     });
 
     // 3. Process Custom Items (Step 2 added)
@@ -104,7 +75,8 @@ export function calculateRequirements(
             weightPerPc: c.weightPerPc,
             totalWeight: totalWeight,
             isCustom: true,
-        });
+            ...(c.length && { length: c.length }), // Include length if present
+        } as CalculatedItem);
     });
 
     // 4. MERGE

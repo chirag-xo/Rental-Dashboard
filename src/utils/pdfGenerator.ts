@@ -64,15 +64,22 @@ export function generatePDF(
     }>();
 
     items.forEach(item => {
-        const key = item.name.trim().toLowerCase();
+        // Include length in aggregation key to keep same items with different lengths separate
+        const lengthSuffix = (item as any).length ? `_${(item as any).length}m` : '';
+        const key = item.name.trim().toLowerCase() + lengthSuffix;
         const existing = aggregated.get(key);
 
         if (existing) {
             existing.qty += item.qty;
             existing.totalWeight += (item.totalWeight || 0);
         } else {
+            // Include length in display name if present
+            const displayName = (item as any).length
+                ? `${item.name} (${(item as any).length}m)`
+                : item.name;
+
             aggregated.set(key, {
-                name: item.name, // Use original casing from first occurrence
+                name: displayName, // Use name with length suffix
                 qty: item.qty,
                 weightPerPc: item.weightPerPc,
                 totalWeight: item.totalWeight || 0

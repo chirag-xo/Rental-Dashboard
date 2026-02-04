@@ -21,7 +21,9 @@ export function mergeDuplicateCategories(categories: InventoryCategory[]): Inven
             // Merge Items
             // ID conflict? If items have same ID, that would be weird but bad. 
             // Assuming unique item IDs across global store.
-            const mergedItems = [...existing.items, ...cat.items];
+            const existingItems = Array.isArray(existing.items) ? existing.items : [];
+            const newItems = Array.isArray(cat.items) ? cat.items : [];
+            const mergedItems = [...existingItems, ...newItems];
 
             mergedMap.set(key, {
                 ...existing,
