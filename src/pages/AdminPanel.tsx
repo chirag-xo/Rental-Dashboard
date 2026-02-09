@@ -13,13 +13,21 @@ import {
     type MeterOption,
     AVAILABLE_LENGTHS
 } from "@/store/inventoryStore";
-import { Plus, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Edit2, ChevronDown, ChevronRight, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ItemSearchInput } from "@/components/ItemSearchInput";
 import { UserList } from "@/components/Admin/UserList";
 import { useAuth } from "@/hooks/useAuth";
 import { PERMISSIONS } from "@/lib/permissions";
 
+function SignOutButton() {
+    const { signOut } = useAuth();
+    return (
+        <Button variant="outline" onClick={signOut} className="gap-2 text-xs text-destructive hover:text-destructive">
+            <LogOut className="h-3 w-3" /> Sign Out
+        </Button>
+    );
+}
 
 export default function AdminPanel() {
     const { user, loading, can } = useAuth();
@@ -61,6 +69,11 @@ export default function AdminPanel() {
                         </TabsContent>
                     )}
                 </Tabs>
+
+                {/* Sign Out Button - Always visible */}
+                <div className="mt-8 flex justify-center">
+                    <SignOutButton />
+                </div>
             </div>
         </Layout>
     );
