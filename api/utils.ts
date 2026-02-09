@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { hasPermission, Permission, UserRole } from './permissions';
+import { hasPermission, Permission, UserRole } from './permissions.js';
 
 // Initialize Supabase Client (Service Role for Admin actions)
 // Support both VITE_ prefixed (local) and non-prefixed (Vercel) env vars

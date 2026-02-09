@@ -1,6 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
-import { AuthenticatedRequest, supabaseAdmin, withAuth } from '../utils';
-import { PERMISSIONS } from '../permissions';
+import { AuthenticatedRequest, supabaseAdmin, withAuth } from '../utils.js';
+import { PERMISSIONS } from '../permissions.js';
 
 // Helper to get JD Rental Org ID (since we only have 1 for now)
 async function getDefaultOrgId() {
@@ -133,7 +133,7 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
 export default withAuth(PERMISSIONS.USER_READ, async (req, res) => {
     // Permission checks same as before
     if (req.method === 'POST' || req.method === 'PUT') {
-        const { hasPermission, PERMISSIONS } = await import('../permissions');
+        const { hasPermission, PERMISSIONS } = await import('../permissions.js');
         // Check "user.write" permission
         // Note: req.user.permissions is now an Array of strings
         if (!req.user.permissions.includes(PERMISSIONS.USER_WRITE)) {
