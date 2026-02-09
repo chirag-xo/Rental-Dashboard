@@ -122,6 +122,25 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
             return res.status(200).json({ message: 'User updated' });
         }
 
+        // 4. DELETE: Remove User
+        if (method === 'DELETE') {
+            const { id } = req.body;
+
+            if (!id) return res.status(400).json({ error: 'User ID is required' });
+
+            // A. Delete from user_roles
+            await supabaseAdmin.from('user_roles').delete().eq('user_id', id);
+
+            // B. Delete from public.users
+            await supabaseAdmin.from('users').delete().eq('id', id);
+
+            // C. Delete from Supabase Auth
+            const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+            if (authError) throw authError;
+
+            return res.status(200).json({ message: 'User deleted' });
+        }
+
         return res.status(405).json({ error: 'Method not allowed' });
 
     } catch (err: any) {
@@ -132,7 +151,7 @@ const handler = async (req: AuthenticatedRequest, res: VercelResponse) => {
 
 export default withAuth(PERMISSIONS.USER_READ, async (req, res) => {
     // Permission checks same as before
-    if (req.method === 'POST' || req.method === 'PUT') {
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
         const { hasPermission, PERMISSIONS } = await import('../permissions.js');
         // Check "user.write" permission
         // Note: req.user.permissions is now an Array of strings

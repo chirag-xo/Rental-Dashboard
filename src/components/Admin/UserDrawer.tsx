@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { type UserRole } from "@/lib/permissions";
 
 interface UserDrawerProps {
@@ -95,6 +95,41 @@ export function UserDrawer({ isOpen, onClose, user, onSuccess }: UserDrawerProps
             if (!res.ok) {
                 const err = await res.json();
                 alert(`Error: ${err.error || 'Failed'}`);
+                return;
+            }
+
+            onSuccess();
+        } catch (error) {
+            console.error(error);
+            alert("Something went wrong");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!user) return;
+        if (!confirm(`Are you sure you want to permanently delete ${user.email}? This action cannot be undone.`)) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch('/api/admin/users', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ id: user.id })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                alert(`Error: ${err.error || 'Failed to delete'}`);
                 return;
             }
 
@@ -201,14 +236,28 @@ export function UserDrawer({ isOpen, onClose, user, onSuccess }: UserDrawerProps
                         </div>
                     )}
 
-                    <SheetFooter className="mt-8 gap-2">
-                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isEdit ? "Save Changes" : "Create Member"}
-                        </Button>
+                    <SheetFooter className="mt-8 flex-col sm:flex-row gap-2">
+                        {isEdit && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={handleDelete}
+                                disabled={loading}
+                                className="w-full sm:w-auto sm:mr-auto"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Account
+                            </Button>
+                        )}
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="flex-1 sm:flex-none">
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={loading} className="flex-1 sm:flex-none">
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isEdit ? "Save Changes" : "Create Member"}
+                            </Button>
+                        </div>
                     </SheetFooter>
                 </form>
             </SheetContent>
