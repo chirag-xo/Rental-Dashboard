@@ -99,7 +99,24 @@ export const withAuth = (requiredPermission: Permission | null, handler: Handler
                 return res.status(401).json({ error: 'Invalid token' });
             }
 
-            // 3. Get Full Context from Custom Tables
+            // 3. Check Max Session Lifetime (8 hours)
+            const MAX_SESSION_HOURS = 8;
+            const sessionStartedAt = authUser.user_metadata?.session_started_at;
+
+            if (sessionStartedAt) {
+                const sessionStart = new Date(sessionStartedAt).getTime();
+                const now = Date.now();
+                const hoursElapsed = (now - sessionStart) / (1000 * 60 * 60);
+
+                if (hoursElapsed > MAX_SESSION_HOURS) {
+                    return res.status(401).json({
+                        error: 'Session expired',
+                        code: 'SESSION_MAX_LIFETIME_EXCEEDED'
+                    });
+                }
+            }
+
+            // 4. Get Full Context from Custom Tables
             const context = await getUserContext(authUser.id);
 
             if (!context) {
@@ -110,7 +127,7 @@ export const withAuth = (requiredPermission: Permission | null, handler: Handler
 
             const { user, roles, permissions } = context;
 
-            // 4. Check Deactivation
+            // 5. Check Deactivation
             if (!user.is_active) {
                 return res.status(403).json({ error: 'Account is deactivated' });
             }
