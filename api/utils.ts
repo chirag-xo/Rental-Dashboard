@@ -3,8 +3,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { hasPermission, Permission, UserRole } from './permissions';
 
 // Initialize Supabase Client (Service Role for Admin actions)
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+// Support both VITE_ prefixed (local) and non-prefixed (Vercel) env vars
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
