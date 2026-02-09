@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit2, UserPlus, LogOut } from "lucide-react";
+import { Edit2, UserPlus } from "lucide-react";
 import { UserDrawer } from "./UserDrawer";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,7 +20,7 @@ export type AdminUser = {
 };
 
 export function UserList() {
-    const { user, signOut } = useAuth();
+    const { user } = useAuth();
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -136,12 +136,6 @@ export function UserList() {
                 user={selectedUser}
                 onSuccess={handleSuccess}
             />
-
-            <div className="mt-8 flex justify-center">
-                <Button variant="outline" onClick={signOut} className="gap-2 text-xs text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10">
-                    <LogOut className="h-3 w-3" /> Sign Out
-                </Button>
-            </div>
         </div>
     );
 }
