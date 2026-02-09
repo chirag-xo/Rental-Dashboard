@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Unused
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     useInventory,
     type InventoryCategory,
@@ -16,16 +16,110 @@ import {
 import { Plus, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ItemSearchInput } from "@/components/ItemSearchInput";
+import { UserList } from "@/components/Admin/UserList";
+import { useAuth } from "@/hooks/useAuth";
+import { PERMISSIONS } from "@/lib/permissions";
+
 
 export default function AdminPanel() {
+    const { user, loading, can } = useAuth();
+
+    if (loading) return <div className="p-8 text-center">Loading...</div>;
+
+    if (!user) {
+        return <AdminLogin />;
+    }
+
+    // Role Check: If user cannot read items, they shouldn't be here at all? 
+    // Actually, AdminPanel is the container.
+    // We should show what they CAN see.
+
     return (
-        <Layout title="Admin Panel" subtitle="Manage your inventory categories and items">
-            <div className="space-y-6 pb-20">
-                <CategoryManager />
+        <Layout title="Admin Console" subtitle={`Logged in as ${user.email}`}>
+            <div className="pb-20">
+                <Tabs defaultValue="inventory" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                        <TabsTrigger value="inventory">Inventory</TabsTrigger>
+                        {can(PERMISSIONS.USER_READ) && (
+                            <TabsTrigger value="users">Team Members</TabsTrigger>
+                        )}
+                    </TabsList>
+
+                    <TabsContent value="inventory" className="space-y-4">
+                        {can(PERMISSIONS.CATEGORY_WRITE) ? (
+                            <CategoryManager />
+                        ) : (
+                            <div className="p-8 text-center text-muted-foreground border rounded-lg border-dashed">
+                                You do not have permission to manage inventory.
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {can(PERMISSIONS.USER_READ) && (
+                        <TabsContent value="users">
+                            <UserList />
+                        </TabsContent>
+                    )}
+                </Tabs>
             </div>
         </Layout>
     );
 }
+
+function AdminLogin() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        const { supabase } = await import("@/lib/supabase");
+
+        const { error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            setError(error.message);
+            setLoading(false);
+        }
+        // Auth state listener in Provider will handle redirect/state update context
+    };
+
+    return (
+        <Layout title="Admin Access" subtitle="Please sign in to continue">
+            <Card className="max-w-md mx-auto mt-8">
+                <CardHeader>
+                    <CardTitle>Sign In</CardTitle>
+                    <CardDescription>Enter your credentials to access the dashboard.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Password</Label>
+                            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                        </div>
+                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? "Signing in..." : "Sign In"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </Layout>
+    );
+}
+
 
 function CategoryManager() {
     const {
@@ -480,4 +574,3 @@ function ItemRow({
         </div>
     )
 }
-
