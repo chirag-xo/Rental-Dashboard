@@ -1,0 +1,25 @@
+{
+    "name": "JD Rentals",
+    "short_name": "Tent Calculator",
+    "description": "Premium Event Setup Calculator",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0b0b0b",
+    "theme_color": "#d4af37",
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
