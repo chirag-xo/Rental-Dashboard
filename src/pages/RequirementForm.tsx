@@ -69,7 +69,7 @@ export default function RequirementForm() {
                 // Update item at index
                 catItems[index] = {
                     ...catItems[index],
-                    [field]: parseInt(value, 10),
+                    [field]: parseInt(value, 10) || 0,
                 };
             }
             return { ...prev, [category]: catItems };

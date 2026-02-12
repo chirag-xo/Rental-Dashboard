@@ -6,6 +6,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { type PackageCategory } from "@/data/packages";
 
 type CategoryRowProps = {
@@ -54,18 +55,14 @@ export function CategoryRow({
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">
                         Quantity
                     </Label>
-                    <Select value={selectedQty} onValueChange={onQtyChange}>
-                        <SelectTrigger className="bg-background border-input/50 h-11">
-                            <SelectValue placeholder="Qty" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((q) => (
-                                <SelectItem key={q} value={q.toString()}>
-                                    {q === 0 ? "None" : q}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Input
+                        type="number"
+                        min="0"
+                        placeholder="Qty"
+                        value={selectedQty === "0" ? "" : selectedQty}
+                        onChange={(e) => onQtyChange(e.target.value)}
+                        className="bg-background border-input/50 h-11"
+                    />
                 </div>
             </div>
         </div>
