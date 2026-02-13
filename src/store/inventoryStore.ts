@@ -302,7 +302,7 @@ export function useInventory() {
     };
 
     const addItem = async (categoryId: string, item: Omit<InventoryItem, "id">) => {
-        await supabase
+        const { error } = await supabase
             .from('inventory_items')
             .insert({
                 category_id: categoryId,
@@ -311,6 +311,13 @@ export function useInventory() {
                 quantity: item.quantity,
                 weight_per_pc_kg: item.weightPerPcKg
             });
+
+        if (error) {
+            console.error("Error adding item:", error);
+            alert("Failed to add item: " + error.message);
+        } else {
+            await fetchData();
+        }
     };
 
     const updateItem = async (_categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
@@ -319,17 +326,32 @@ export function useInventory() {
         if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity;
         if (updates.weightPerPcKg !== undefined) dbUpdates.weight_per_pc_kg = updates.weightPerPcKg;
 
-        await supabase
+        const { error } = await supabase
             .from('inventory_items')
             .update(dbUpdates)
             .eq('id', itemId);
+
+        if (error) {
+            console.error("Error updating item:", error);
+            alert("Failed to update item: " + error.message);
+        } else {
+            await fetchData();
+        }
     };
 
     const deleteItem = async (_categoryId: string, itemId: string) => {
-        await supabase
+        const { error } = await supabase
             .from('inventory_items')
             .delete()
             .eq('id', itemId);
+
+        if (error) {
+            console.error("Error deleting item:", error);
+            alert("Failed to delete item: " + error.message);
+        } else {
+            // Optimistic update or refresh
+            await fetchData();
+        }
     };
 
     const importData = (_jsonString: string) => { return false; };

@@ -544,6 +544,13 @@ function ItemRow({
     const [qty, setQty] = useState(item.quantity.toString());
     const [weight, setWeight] = useState(item.weightPerPcKg?.toString() || "");
 
+    // Sync state with props when item changes (e.g. after external update)
+    useEffect(() => {
+        setName(item.name);
+        setQty(item.quantity.toString());
+        setWeight(item.weightPerPcKg?.toString() || "");
+    }, [item]);
+
     const handleSave = () => {
         if (name && qty) {
             onUpdate({
