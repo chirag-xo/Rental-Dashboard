@@ -1,0 +1,175 @@
+-- Seed Data Migration
+
+DO $$
+DECLARE
+    v_cat_id UUID;
+BEGIN
+    -- Category: Ring
+    INSERT INTO public.inventory_categories (name, supported_lengths) VALUES ('Ring', '[20,30,40,50]'::jsonb) RETURNING id INTO v_cat_id;
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 2 Patti', 20, 3, 55.31);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 2 Patti', 30, 4, 55.31);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 2 Patti', 40, 5, 55.31);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 2 Patti', 50, 7, 55.31);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 3 Patti', 20, 1, 56.92);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 3 Patti', 30, 2, 56.92);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 3 Patti', 40, 3, 56.92);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rafter 3 Patti', 50, 3, 56.92);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Piller with Gulla', 20, 1, 53.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Piller with Gulla', 30, 2, 53.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Piller with Gulla', 40, 3, 53.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Piller with Gulla', 50, 3, 53.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Kanplate', 20, 3, 14.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Kanplate', 30, 4, 14.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Kanplate', 40, 5, 14.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Kanplate', 50, 7, 14.99);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Base plate', 20, 1, 17.34);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Base plate', 30, 2, 17.34);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Base plate', 40, 3, 17.34);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Base plate', 50, 3, 17.34);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Alluminium Jointer', 20, 3, 13.28);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Alluminium Jointer', 30, 4, 13.28);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Alluminium Jointer', 40, 5, 13.28);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Alluminium Jointer', 50, 7, 13.28);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'V Jointer', 20, 1, 32.63);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'V Jointer', 30, 1, 32.63);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'V Jointer', 40, 1, 32.63);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'V Jointer', 50, 2, 32.63);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side brasing', 20, 1, 24.29);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side brasing', 30, 2, 24.29);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side brasing', 40, 3, 24.29);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side brasing', 50, 3, 24.29);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre brasing', 20, 1, 18.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre brasing', 30, 1, 18.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre brasing', 40, 1, 18.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre brasing', 50, 2, 18.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Khunte', 20, 5, 3.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Khunte', 30, 8, 3.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Khunte', 40, 11, 3.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Khunte', 50, 13, 3.26);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rachit belt', 20, 1, 1.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rachit belt', 30, 2, 1.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rachit belt', 40, 3, 1.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rachit belt', 50, 3, 1.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Nut bolt', 20, 21, 0.27);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Nut bolt', 30, 32, 0.27);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Nut bolt', 40, 43, 0.27);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Nut bolt', 50, 53, 0.27);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'I bolt', 20, 16, 0.24);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'I bolt', 30, 24, 0.24);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'I bolt', 40, 32, 0.24);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'I bolt', 50, 40, 0.24);
+
+    -- Category: Bay
+    INSERT INTO public.inventory_categories (name, supported_lengths) VALUES ('Bay', '[20,30,40,50]'::jsonb) RETURNING id INTO v_cat_id;
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side Parling', 20, 1, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side Parling', 30, 2, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side Parling', 40, 3, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Side Parling', 50, 3, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre Parling', 20, 1, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre Parling', 30, 1, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre Parling', 40, 1, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Centre Parling', 50, 2, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Patle Parling', 20, 8, 10.7);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Patle Parling', 30, 12, 10.7);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Patle Parling', 40, 16, 10.7);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Patle Parling', 50, 20, 10.7);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal Pipe', 20, 1, 15.52);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal Pipe', 30, 2, 15.52);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal Pipe', 40, 3, 15.52);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal Pipe', 50, 3, 15.52);
+
+    -- Category: Fabric
+    INSERT INTO public.inventory_categories (name, supported_lengths) VALUES ('Fabric', '[20,30,40,50]'::jsonb) RETURNING id INTO v_cat_id;
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal', 20, 1, 154.6);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal', 30, 1, 154.6);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal', 40, 1, 154.6);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Tirpal', 50, 2, 154.6);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Parde 4.5m', 20, 1, 25.95);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Parde 4.5m', 30, 1, 25.95);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Parde 4.5m', 40, 1, 25.95);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Parde 4.5m', 50, 2, 25.95);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'D Set 30m', 20, 1, 97.45);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'D Set 30m', 30, 1, 97.45);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'D Set 30m', 40, 1, 97.45);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'D Set 30m', 50, 2, 97.45);
+
+    -- Category: Fasad
+    INSERT INTO public.inventory_categories (name, supported_lengths) VALUES ('Fasad', '[20,30,40,50]'::jsonb) RETURNING id INTO v_cat_id;
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Piller', 20, 3, 20.16);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Piller', 30, 5, 20.16);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Piller', 40, 7, 20.16);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Piller', 50, 8, 20.16);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 14f', 20, 1, 23.17);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 14f', 30, 1, 23.17);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 14f', 40, 1, 23.17);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 14f', 50, 2, 23.17);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 9f', 20, 1, 15.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 9f', 30, 2, 15.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 9f', 40, 3, 15.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 9f', 50, 3, 15.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 1m', 20, 1, 10.37);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 1m', 30, 2, 10.37);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 1m', 40, 3, 10.37);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Top 1m', 50, 3, 10.37);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Parling', 20, 4, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Parling', 30, 6, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Parling', 40, 8, 20.21);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Fasad Parling', 50, 10, 20.21);
+
+    -- Category: Others
+    INSERT INTO public.inventory_categories (name, supported_lengths) VALUES ('Others', '[20,30,40,50]'::jsonb) RETURNING id INTO v_cat_id;
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Cross Pipe', 20, 1, 19.04);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Cross Pipe', 30, 1, 19.04);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Cross Pipe', 40, 1, 19.04);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Cross Pipe', 50, 2, 19.04);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Bracket', 20, 1, 2.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Bracket', 30, 1, 2.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Bracket', 40, 1, 2.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Bracket', 50, 2, 2.3);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rassa', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rassa', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rassa', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rassa', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Hammer', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Hammer', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Hammer', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Hammer', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Chabi pana', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Chabi pana', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Chabi pana', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Chabi pana', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Line dori', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Line dori', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Line dori', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Line dori', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Inch Tap', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Inch Tap', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Inch Tap', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Inch Tap', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty belt', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty belt', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty belt', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty belt', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty Helmat', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty Helmat', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty Helmat', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Safty Helmat', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Balla Pipe', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Balla Pipe', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Balla Pipe', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Balla Pipe', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rope wire', 20, 1, 6.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rope wire', 30, 1, 6.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rope wire', 40, 1, 6.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rope wire', 50, 2, 6.47);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rajai Gadde', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rajai Gadde', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rajai Gadde', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Rajai Gadde', 50, 2, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Sidi', 20, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Sidi', 30, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Sidi', 40, 1, NULL);
+    INSERT INTO public.inventory_items (category_id, name, length, quantity, weight_per_pc_kg) VALUES (v_cat_id, 'Sidi', 50, 2, NULL);
+
+END $$;
+
