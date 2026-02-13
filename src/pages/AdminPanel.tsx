@@ -144,7 +144,8 @@ function CategoryManager() {
         addItem,
         updateItem,
         deleteItem,
-        getAllKnownItems
+        getAllKnownItems,
+        migrateFromLocalStorage
     } = useInventory();
 
     const [newCatName, setNewCatName] = useState("");
@@ -246,6 +247,23 @@ function CategoryManager() {
                         </motion.div>
                     ))}
                 </AnimatePresence>
+            </div>
+
+            {/* Migration Tool */}
+            <div className="pt-8 border-t">
+                <h3 className="text-sm font-semibold mb-2">Data Migration</h3>
+                <Button
+                    variant="outline"
+                    onClick={async () => {
+                        if (confirm("This will attempt to read 'jd_rentals_inventory_v1' from your browser storage and upload it to Supabase. Continue?")) {
+                            // @ts-ignore
+                            const res = await migrateFromLocalStorage();
+                            alert(res);
+                        }
+                    }}
+                >
+                    Migrate Legacy Local Data
+                </Button>
             </div>
         </div>
     );

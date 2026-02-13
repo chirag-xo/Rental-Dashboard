@@ -348,6 +348,89 @@ export function useInventory() {
     // Let's make sure seedData is available
     const seedData = seedDatabase;
 
+    const migrateFromLocalStorage = async () => {
+        const STORAGE_KEY = "jd_rentals_inventory_v1";
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return "No local data found.";
+
+        try {
+            const parsed = JSON.parse(stored);
+            if (!parsed.categories || !Array.isArray(parsed.categories)) {
+                return "Invalid local data format.";
+            }
+
+            let catsAdded = 0;
+            let itemsAdded = 0;
+
+            console.log("Starting migration...", parsed.categories.length, "categories found.");
+
+            for (const cat of parsed.categories) {
+                // 1. Ensure Category Exists
+                let catId: string | null = null;
+
+                // Check if exists
+                const { data: existingCat } = await supabase
+                    .from('inventory_categories')
+                    .select('id, supported_lengths')
+                    .ilike('name', cat.name.trim())
+                    .single();
+
+                if (existingCat) {
+                    catId = existingCat.id;
+                } else {
+                    const { data: newCat, error } = await supabase
+                        .from('inventory_categories')
+                        .insert({
+                            name: cat.name.trim(),
+                            supported_lengths: cat.supportedLengths || AVAILABLE_LENGTHS
+                        })
+                        .select('id')
+                        .single();
+
+                    if (error || !newCat) {
+                        console.error("Failed to migrate category", cat.name, error);
+                        continue;
+                    }
+                    catId = newCat.id;
+                    catsAdded++;
+                }
+
+                if (!catId) continue;
+
+                // 2. Migrate Items
+                for (const item of cat.items) {
+                    // Check if exists in this category
+                    const { count } = await supabase
+                        .from('inventory_items')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('category_id', catId)
+                        .eq('name', item.name)
+                        .eq('length', item.length);
+
+                    if (count === 0) {
+                        await supabase
+                            .from('inventory_items')
+                            .insert({
+                                category_id: catId,
+                                name: item.name,
+                                length: item.length,
+                                quantity: item.quantity,
+                                weight_per_pc_kg: item.weightPerPcKg
+                            });
+                        itemsAdded++;
+                    }
+                }
+            }
+
+            await fetchData();
+            return `Migration Complete. Added ${catsAdded} new categories and ${itemsAdded} items.`;
+
+        } catch (e) {
+            console.error("Migration failed", e);
+            return "Migration failed. Check console locally.";
+        }
+    };
+
     const getAllKnownItems = (): InventoryItem[] => {
         const allItems = new Map<string, InventoryItem>();
         categories.forEach(cat => {
@@ -374,6 +457,7 @@ export function useInventory() {
         importData,
         exportData,
         resetToDefault,
-        getAllKnownItems
+        getAllKnownItems,
+        migrateFromLocalStorage
     };
 }
