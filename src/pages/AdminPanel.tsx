@@ -144,8 +144,7 @@ function CategoryManager() {
         addItem,
         updateItem,
         deleteItem,
-        getAllKnownItems,
-        migrateFromLocalStorage
+        getAllKnownItems
     } = useInventory();
 
     const [newCatName, setNewCatName] = useState("");
