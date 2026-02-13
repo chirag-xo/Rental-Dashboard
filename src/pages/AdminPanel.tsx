@@ -295,6 +295,12 @@ function CategoryCard({
     const [editName, setEditName] = useState(category.name);
     const [editLengths, setEditLengths] = useState<MeterOption[]>(category.supportedLengths || []);
 
+    // Sync state with props
+    useEffect(() => {
+        setEditName(category.name);
+        setEditLengths(category.supportedLengths || []);
+    }, [category]);
+
     // Active Length Tab
     const activeLengths = category.supportedLengths || [];
     const [activeTab, setActiveTab] = useState<MeterOption | null>(activeLengths[0] || null);

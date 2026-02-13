@@ -281,24 +281,53 @@ export function useInventory() {
 
 
     const updateCategory = async (id: string, name: string) => {
-        await supabase
+        // Optimistic
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
+
+        const { error } = await supabase
             .from('inventory_categories')
             .update({ name })
             .eq('id', id);
+
+        if (error) {
+            console.error("Error updating category name:", error);
+            alert("Failed to update category: " + error.message);
+            await fetchData(); // Revert
+        } else {
+            // await fetchData(); 
+        }
     };
 
     const deleteCategory = async (id: string) => {
-        await supabase
+        // Optimistic
+        setCategories(prev => prev.filter(c => c.id !== id));
+
+        const { error } = await supabase
             .from('inventory_categories')
             .delete()
             .eq('id', id);
+
+        if (error) {
+            console.error("Error deleting category:", error);
+            alert("Failed to delete category: " + error.message);
+            await fetchData(); // Revert
+        }
     };
 
     const updateCategoryLengths = async (id: string, lengths: MeterOption[]) => {
-        await supabase
+        // Optimistic
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, supportedLengths: lengths } : c));
+
+        const { error } = await supabase
             .from('inventory_categories')
             .update({ supported_lengths: lengths })
             .eq('id', id);
+
+        if (error) {
+            console.error("Error updating category lengths:", error);
+            alert("Failed to update lengths: " + error.message);
+            await fetchData(); // Revert
+        }
     };
 
     const addItem = async (categoryId: string, item: Omit<InventoryItem, "id">) => {
