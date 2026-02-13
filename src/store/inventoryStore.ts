@@ -163,10 +163,10 @@ export function useInventory() {
             });
 
             // If empty, seed
-            if (cats.length === 0) {
-                await seedDatabase();
-                return;
-            }
+            // if (cats.length === 0) {
+            //     await seedDatabase();
+            //     return;
+            // }
 
             setCategories(cats);
 
