@@ -7,10 +7,12 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { type PackageCategory } from "@/data/packages";
+// import { type PackageCategory } from "@/data/packages"; // Unused now if we changed prop type to string, but let's keep it safe or remove if truly unused. Matches previous state.
+// Actually I changed prop to string in previous step.
+import { AVAILABLE_LENGTHS } from "@/store/inventoryStore";
 
 type CategoryRowProps = {
-    category: PackageCategory;
+    category: string; // Changed to string as it's just a name in usage
     selectedMeter: string;
     selectedQty: string;
     validLengths?: number[]; // Added prop
@@ -22,7 +24,7 @@ export function CategoryRow({
     category,
     selectedMeter,
     selectedQty,
-    validLengths = [20, 30, 40, 50], // Default fallback
+    validLengths = AVAILABLE_LENGTHS, // Default fallback
     onMeterChange,
     onQtyChange,
 }: CategoryRowProps) {

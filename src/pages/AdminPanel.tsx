@@ -149,7 +149,7 @@ function CategoryManager() {
     } = useInventory();
 
     const [newCatName, setNewCatName] = useState("");
-    const [selectedLengths, setSelectedLengths] = useState<MeterOption[]>([20, 30, 40, 50]);
+    const [selectedLengths, setSelectedLengths] = useState<MeterOption[]>(AVAILABLE_LENGTHS);
 
     // Compute known items for search
     const knownItems = useMemo(() => getAllKnownItems(), [categories]);
@@ -164,7 +164,7 @@ function CategoryManager() {
                     alert(result.message); // Show warning/merge info
                 }
                 setNewCatName("");
-                setSelectedLengths([20, 30, 40, 50]);
+                setSelectedLengths(AVAILABLE_LENGTHS);
             } else {
                 if (result.message) {
                     alert(result.message); // Show error (e.g. all lengths duplicates)
@@ -250,7 +250,8 @@ function CategoryManager() {
             </div>
 
             {/* Migration Tool */}
-            <div className="pt-8 border-t">
+            {/* Migration Tool - Hidden by default */}
+            {/* <div className="pt-8 border-t">
                 <h3 className="text-sm font-semibold mb-2">Data Migration</h3>
                 <Button
                     variant="outline"
@@ -264,7 +265,7 @@ function CategoryManager() {
                 >
                     Migrate Legacy Local Data
                 </Button>
-            </div>
+            </div> */}
         </div>
     );
 }
