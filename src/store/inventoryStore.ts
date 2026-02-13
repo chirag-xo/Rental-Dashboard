@@ -302,7 +302,7 @@ export function useInventory() {
     };
 
     const addItem = async (categoryId: string, item: Omit<InventoryItem, "id">) => {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('inventory_items')
             .insert({
                 category_id: categoryId,
@@ -310,17 +310,48 @@ export function useInventory() {
                 length: item.length,
                 quantity: item.quantity,
                 weight_per_pc_kg: item.weightPerPcKg
-            });
+            })
+            .select() // Select to get the new ID
+            .single();
 
-        if (error) {
+        if (error || !data) {
             console.error("Error adding item:", error);
-            alert("Failed to add item: " + error.message);
+            alert("Failed to add item: " + error?.message);
         } else {
+            // Optimistic / Immediate update
+            setCategories(prev => prev.map(cat => {
+                if (cat.id === categoryId) {
+                    return {
+                        ...cat,
+                        items: [...cat.items, {
+                            id: data.id,
+                            category_id: categoryId,
+                            name: data.name,
+                            length: data.length,
+                            quantity: data.quantity,
+                            weightPerPcKg: data.weight_per_pc_kg
+                        }]
+                    };
+                }
+                return cat;
+            }));
+            // Background refresh to ensure consistency
             await fetchData();
         }
     };
 
-    const updateItem = async (_categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
+    const updateItem = async (categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
+        // 1. Optimistic Update
+        setCategories(prev => prev.map(cat => {
+            if (cat.id === categoryId) {
+                return {
+                    ...cat,
+                    items: cat.items.map(i => i.id === itemId ? { ...i, ...updates } : i)
+                };
+            }
+            return cat;
+        }));
+
         const dbUpdates: any = {};
         if (updates.name !== undefined) dbUpdates.name = updates.name;
         if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity;
@@ -334,12 +365,24 @@ export function useInventory() {
         if (error) {
             console.error("Error updating item:", error);
             alert("Failed to update item: " + error.message);
+            await fetchData(); // Revert on error
         } else {
-            await fetchData();
+            // await fetchData(); // Optional: consistency check, but optimistic should be enough
         }
     };
 
-    const deleteItem = async (_categoryId: string, itemId: string) => {
+    const deleteItem = async (categoryId: string, itemId: string) => {
+        // 1. Optimistic Update
+        setCategories(prev => prev.map(cat => {
+            if (cat.id === categoryId) {
+                return {
+                    ...cat,
+                    items: cat.items.filter(i => i.id !== itemId)
+                };
+            }
+            return cat;
+        }));
+
         const { error } = await supabase
             .from('inventory_items')
             .delete()
@@ -348,9 +391,9 @@ export function useInventory() {
         if (error) {
             console.error("Error deleting item:", error);
             alert("Failed to delete item: " + error.message);
+            await fetchData(); // Revert
         } else {
-            // Optimistic update or refresh
-            await fetchData();
+            // await fetchData();
         }
     };
 
