@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { mergeDuplicateCategories } from "@/utils/migrationHelpers";
 
@@ -10,39 +11,28 @@ export const AVAILABLE_LENGTHS: MeterOption[] = [10, 15, 20, 25, 30, 40, 50, 60]
 export type InventoryItem = {
     id: string;
     name: string;
-    length: MeterOption; // Explicit length
-    quantity: number;    // Explicit quantity for this length
+    length: MeterOption;
+    quantity: number;
     weightPerPcKg: number | null;
+    category_id?: string; // Optional for UI, needed for DB
 };
 
 export type InventoryCategory = {
     id: string;
     name: string;
     items: InventoryItem[];
-    supportedLengths: MeterOption[]; // Strictly typed now
-};
-
-export type InventoryDB = {
-    version: number;
-    categories: InventoryCategory[];
+    supportedLengths: MeterOption[];
 };
 
 // --- Constants ---
 
-const STORAGE_KEY = "jd_rentals_inventory_v1";
-// Increment version to force migration/reset
-const STORAGE_VERSION = 4;
-
-// Seed Data
-// We need to expand the original "Template Items" into explicit items for each length.
-// Original scaling logic: 20m: 0.67, 30m: 1.0, 40m: 1.33, 50m: 1.67
-// Default lengths usually supported: 20, 30, 40, 50
-
+// Seed Data for initial DB population
 const BASE_LENGTHS: MeterOption[] = [30];
 
-const generateItems = (baseName: string, weight: number | null, baseQty30m: number): InventoryItem[] => {
+const generateItems = (baseName: string, weight: number | null, baseQty30m: number): Omit<InventoryItem, 'id'>[] => {
     return BASE_LENGTHS.map(len => {
         let scale = 1.0;
+        // Simple scaling logic for seed
         if (len === 10) scale = 0.33;
         if (len === 15) scale = 0.5;
         if (len === 20) scale = 0.67;
@@ -52,7 +42,6 @@ const generateItems = (baseName: string, weight: number | null, baseQty30m: numb
         if (len === 60) scale = 2.0;
 
         return {
-            id: uuidv4(),
             name: baseName,
             length: len,
             quantity: Math.round(baseQty30m * scale) || 1,
@@ -61,11 +50,9 @@ const generateItems = (baseName: string, weight: number | null, baseQty30m: numb
     });
 };
 
-const SEED_DATA: InventoryCategory[] = [
+const SEED_DATA_TEMPLATE = [
     {
-        id: "cat-ring",
         name: "Ring",
-        supportedLengths: AVAILABLE_LENGTHS,
         items: [
             ...generateItems("Rafter 2 Patti", 55.31, 4),
             ...generateItems("Rafter 3 Patti", 56.92, 2),
@@ -83,9 +70,7 @@ const SEED_DATA: InventoryCategory[] = [
         ]
     },
     {
-        id: "cat-bay",
         name: "Bay",
-        supportedLengths: AVAILABLE_LENGTHS,
         items: [
             ...generateItems("Side Parling", 20.21, 2),
             ...generateItems("Centre Parling", 20.21, 1),
@@ -94,9 +79,7 @@ const SEED_DATA: InventoryCategory[] = [
         ]
     },
     {
-        id: "cat-fabric",
         name: "Fabric",
-        supportedLengths: AVAILABLE_LENGTHS,
         items: [
             ...generateItems("Tirpal", 154.6, 1),
             ...generateItems("Parde 4.5m", 25.95, 1),
@@ -104,9 +87,7 @@ const SEED_DATA: InventoryCategory[] = [
         ]
     },
     {
-        id: "cat-fasad",
         name: "Fasad",
-        supportedLengths: AVAILABLE_LENGTHS,
         items: [
             ...generateItems("Fasad Piller", 20.16, 5),
             ...generateItems("Fasad Top 14f", 23.17, 1),
@@ -116,9 +97,7 @@ const SEED_DATA: InventoryCategory[] = [
         ]
     },
     {
-        id: "cat-others",
         name: "Others",
-        supportedLengths: AVAILABLE_LENGTHS,
         items: [
             ...generateItems("Cross Pipe", 19.04, 1),
             ...generateItems("Bracket", 2.3, 1),
@@ -137,58 +116,134 @@ const SEED_DATA: InventoryCategory[] = [
     },
 ];
 
+
 // --- Hook ---
 
 export function useInventory() {
     const [categories, setCategories] = useState<InventoryCategory[]>([]);
     const [loading, setLoading] = useState(true);
-    // Load from localStorage on mount
-    useEffect(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            try {
-                const parsed: InventoryDB = JSON.parse(stored);
-                if (parsed.version === STORAGE_VERSION) {
-                    // Migration: Merge duplicates on load
-                    const merged = mergeDuplicateCategories(parsed.categories);
-                    setCategories(merged);
-                } else {
-                    // Reset if version mismatch
-                    seedData();
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Fetch Categories
+            const { data: catData, error: catError } = await supabase
+                .from('inventory_categories')
+                .select('*')
+                .order('name');
+
+            if (catError) throw catError;
+
+            // Fetch Items
+            const { data: itemData, error: itemError } = await supabase
+                .from('inventory_items')
+                .select('*');
+
+            if (itemError) throw itemError;
+
+            // Map to local structure
+            const cats: InventoryCategory[] = (catData || []).map(c => ({
+                id: c.id,
+                name: c.name,
+                supportedLengths: (c.supported_lengths || []) as MeterOption[],
+                items: []
+            }));
+
+            // Distribute items
+            (itemData || []).forEach(i => {
+                const cat = cats.find(c => c.id === i.category_id);
+                if (cat) {
+                    cat.items.push({
+                        id: i.id,
+                        name: i.name,
+                        length: i.length as MeterOption,
+                        quantity: i.quantity,
+                        weightPerPcKg: i.weight_per_pc_kg,
+                        category_id: i.category_id
+                    });
                 }
-            } catch (e) {
-                console.error("Failed to parse inventory", e);
-                seedData();
+            });
+
+            // If empty, seed
+            if (cats.length === 0) {
+                await seedDatabase();
+                return;
             }
-        } else {
-            seedData();
+
+            setCategories(cats);
+
+        } catch (err) {
+            console.error("Error fetching inventory:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
+    };
+
+    const seedDatabase = async () => {
+        console.log("Seeding Database...");
+
+        // Use a loop to ensure sequential creation (categories first)
+        for (const tmpl of SEED_DATA_TEMPLATE) {
+            // Create Category
+            const { data: cat, error } = await supabase
+                .from('inventory_categories')
+                .insert({
+                    name: tmpl.name,
+                    supported_lengths: AVAILABLE_LENGTHS
+                })
+                .select()
+                .single();
+
+            if (error || !cat) {
+                console.error("Failed to seed category", tmpl.name, error);
+                continue;
+            }
+
+            // Create Items
+            // Note: DB expects snake_case columns
+            const itemsToInsert = tmpl.items.map(i => ({
+                category_id: cat.id,
+                name: i.name,
+                length: i.length,
+                quantity: i.quantity,
+                weight_per_pc_kg: i.weightPerPcKg
+            }));
+
+            const { error: itemError } = await supabase.from('inventory_items').insert(itemsToInsert);
+            if (itemError) {
+                console.error("Failed to seed items for", tmpl.name, itemError);
+            }
+        }
+        await fetchData(); // Refresh
+    };
+
+    useEffect(() => {
+        fetchData();
+
+        // Subscription for realtime updates
+        const channel = supabase.channel('inventory-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_categories' }, () => fetchData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items' }, () => fetchData())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
-    // Save to localStorage on change
-    useEffect(() => {
-        if (!loading) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                version: STORAGE_VERSION,
-                categories
-            }));
-        }
-    }, [categories, loading]);
-
-    const seedData = () => {
-        // Also ensure seed data is merged just in case
-        setCategories(mergeDuplicateCategories(SEED_DATA));
-    };
 
     // --- Actions ---
 
-    const addCategory = (name: string, supportedLengths: MeterOption[] = [20, 30, 40, 50]): { success: boolean, message?: string } => {
+    const addCategory = async (name: string, supportedLengths: MeterOption[] = [20, 30, 40, 50]): Promise<{ success: boolean, message?: string }> => {
         const normalizedName = name.trim();
+
+        // Check duplication logic
+        // We can't synchronously check categories unless we trust `categories` state, which is fine for UI feedback but eventual consistency might conflict.
+
         const existingCat = categories.find(c => c.name.toLowerCase() === normalizedName.toLowerCase());
 
         if (existingCat) {
-            // Merge logic
+            // Merge logic in DB
             const currentLengths = new Set(existingCat.supportedLengths || []);
             const newLengthsToAdd = supportedLengths.filter(l => !currentLengths.has(l));
 
@@ -198,100 +253,102 @@ export function useInventory() {
 
             const updatedLengths = [...existingCat.supportedLengths, ...newLengthsToAdd].sort((a, b) => a - b);
 
-            setCategories((prev) =>
-                prev.map((cat) => (cat.id === existingCat.id ? { ...cat, supportedLengths: updatedLengths } : cat))
-            );
+            const { error } = await supabase
+                .from('inventory_categories')
+                .update({ supported_lengths: updatedLengths })
+                .eq('id', existingCat.id);
+
+            if (error) {
+                console.error("Error updating category lengths", error);
+                return { success: false, message: "Database error" };
+            }
 
             return { success: true, message: `Merged new lengths into existing category "${existingCat.name}".` };
         }
 
-        const newCat: InventoryCategory = {
-            id: uuidv4(),
-            name: normalizedName,
-            items: [],
-            supportedLengths,
-        };
-        setCategories((prev) => [...prev, newCat]);
+        const { error } = await supabase
+            .from('inventory_categories')
+            .insert({
+                name: normalizedName,
+                supported_lengths: supportedLengths
+            });
+
+        if (error) {
+            console.error("Error creating category", error);
+            return { success: false, message: error.message };
+        }
+
         return { success: true };
     };
 
 
-    const updateCategory = (id: string, name: string) => {
-        setCategories((prev) =>
-            prev.map((cat) => (cat.id === id ? { ...cat, name } : cat))
-        );
+    const updateCategory = async (id: string, name: string) => {
+        await supabase
+            .from('inventory_categories')
+            .update({ name })
+            .eq('id', id);
     };
 
-    const deleteCategory = (id: string) => {
-        setCategories((prev) => prev.filter((cat) => cat.id !== id));
+    const deleteCategory = async (id: string) => {
+        await supabase
+            .from('inventory_categories')
+            .delete()
+            .eq('id', id);
     };
 
-    const updateCategoryLengths = (id: string, lengths: MeterOption[]) => {
-        setCategories((prev) =>
-            prev.map((cat) => (cat.id === id ? { ...cat, supportedLengths: lengths } : cat))
-        );
+    const updateCategoryLengths = async (id: string, lengths: MeterOption[]) => {
+        await supabase
+            .from('inventory_categories')
+            .update({ supported_lengths: lengths })
+            .eq('id', id);
     };
 
-    const addItem = (categoryId: string, item: Omit<InventoryItem, "id">) => {
-        const newItem: InventoryItem = { ...item, id: uuidv4() };
-        setCategories((prev) =>
-            prev.map((cat) =>
-                cat.id === categoryId
-                    ? { ...cat, items: [...cat.items, newItem] }
-                    : cat
-            )
-        );
+    const addItem = async (categoryId: string, item: Omit<InventoryItem, "id">) => {
+        await supabase
+            .from('inventory_items')
+            .insert({
+                category_id: categoryId,
+                name: item.name,
+                length: item.length,
+                quantity: item.quantity,
+                weight_per_pc_kg: item.weightPerPcKg
+            });
     };
 
-    const updateItem = (categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
-        setCategories((prev) =>
-            prev.map((cat) =>
-                cat.id === categoryId
-                    ? {
-                        ...cat,
-                        items: cat.items.map((item) =>
-                            item.id === itemId ? { ...item, ...updates } : item
-                        ),
-                    }
-                    : cat
-            )
-        );
+    const updateItem = async (categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
+        const dbUpdates: any = {};
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity;
+        if (updates.weightPerPcKg !== undefined) dbUpdates.weight_per_pc_kg = updates.weightPerPcKg;
+
+        await supabase
+            .from('inventory_items')
+            .update(dbUpdates)
+            .eq('id', itemId);
     };
 
-    const deleteItem = (categoryId: string, itemId: string) => {
-        setCategories((prev) =>
-            prev.map((cat) =>
-                cat.id === categoryId
-                    ? { ...cat, items: cat.items.filter((item) => item.id !== itemId) }
-                    : cat
-            )
-        );
+    const deleteItem = async (categoryId: string, itemId: string) => {
+        await supabase
+            .from('inventory_items')
+            .delete()
+            .eq('id', itemId);
     };
 
-    const importData = (jsonString: string) => {
-        try {
-            const parsed = JSON.parse(jsonString);
-            if (Array.isArray(parsed.categories)) {
-                setCategories(parsed.categories);
-                return true;
-            }
-            return false;
-        } catch (e) {
-            return false;
-        }
+    const importData = (jsonString: string) => { return false; };
+    const exportData = () => { return JSON.stringify(categories, null, 2); };
+
+    const resetToDefault = async () => {
+        if (!confirm("Are you sure? This will WIPE the database.")) return;
+        // Delete items first as they reference categories
+        await supabase.from('inventory_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('inventory_categories').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await seedData(); // Wait for re-fetch will happen on seed
     };
 
-    const exportData = () => {
-        const db: InventoryDB = {
-            version: STORAGE_VERSION,
-            categories,
-        };
-        return JSON.stringify(db, null, 2);
-    };
-
-    const resetToDefault = () => {
-        seedData();
-    }
+    // Alias seedDatabase to seedData if needed internally or exposing it?
+    // The interface expects resetToDefault to handle logic. 
+    // Let's make sure seedData is available
+    const seedData = seedDatabase;
 
     const getAllKnownItems = (): InventoryItem[] => {
         const allItems = new Map<string, InventoryItem>();
