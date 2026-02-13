@@ -153,10 +153,10 @@ function CategoryManager() {
     // Compute known items for search
     const knownItems = useMemo(() => getAllKnownItems(), [categories]);
 
-    const handleAddCategory = (e: React.FormEvent) => {
+    const handleAddCategory = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newCatName.trim()) {
-            const result = addCategory(newCatName.trim(), selectedLengths);
+            const result = await addCategory(newCatName.trim(), selectedLengths);
 
             if (result.success) {
                 if (result.message) {

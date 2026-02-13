@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { v4 as uuidv4 } from "uuid";
-import { mergeDuplicateCategories } from "@/utils/migrationHelpers";
 
 // --- Types ---
 
@@ -315,7 +313,7 @@ export function useInventory() {
             });
     };
 
-    const updateItem = async (categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
+    const updateItem = async (_categoryId: string, itemId: string, updates: Partial<InventoryItem>) => {
         const dbUpdates: any = {};
         if (updates.name !== undefined) dbUpdates.name = updates.name;
         if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity;
@@ -327,14 +325,14 @@ export function useInventory() {
             .eq('id', itemId);
     };
 
-    const deleteItem = async (categoryId: string, itemId: string) => {
+    const deleteItem = async (_categoryId: string, itemId: string) => {
         await supabase
             .from('inventory_items')
             .delete()
             .eq('id', itemId);
     };
 
-    const importData = (jsonString: string) => { return false; };
+    const importData = (_jsonString: string) => { return false; };
     const exportData = () => { return JSON.stringify(categories, null, 2); };
 
     const resetToDefault = async () => {
