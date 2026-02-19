@@ -58,6 +58,8 @@ export function generatePDF(
     // --- Aggregation Logic ---
     const aggregated = new Map<string, {
         name: string,
+        category: string,
+        length?: number,
         qty: number,
         weightPerPc: number | null,
         totalWeight: number
@@ -73,13 +75,10 @@ export function generatePDF(
             existing.qty += item.qty;
             existing.totalWeight += (item.totalWeight || 0);
         } else {
-            // Include length in display name if present
-            const displayName = (item as any).length
-                ? `${item.name} (${(item as any).length}m)`
-                : item.name;
-
             aggregated.set(key, {
-                name: displayName, // Use name with length suffix
+                name: item.name,
+                category: item.category || "Other Items",
+                length: (item as any).length,
                 qty: item.qty,
                 weightPerPc: item.weightPerPc,
                 totalWeight: item.totalWeight || 0
@@ -87,26 +86,78 @@ export function generatePDF(
         }
     });
 
-    const sortedItems = Array.from(aggregated.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const aggregatedItems = Array.from(aggregated.values());
 
-    const tableRows = sortedItems.map((item) => [
-        item.name,
-        item.qty,
-        item.weightPerPc !== null ? item.weightPerPc.toFixed(2) + " kg" : "---",
-        item.totalWeight !== null ? item.totalWeight.toFixed(2) + " kg" : "---",
-    ]);
+    // --- Grouping Logic ---
+    const groupedItems = new Map<string, typeof aggregatedItems>();
+    const uncategorizedItems: typeof aggregatedItems = [];
+
+    aggregatedItems.forEach(item => {
+        const category = item.category?.trim();
+        if (!category || category === "Other Items") {
+            uncategorizedItems.push(item);
+        } else {
+            if (!groupedItems.has(category)) {
+                groupedItems.set(category, []);
+            }
+            groupedItems.get(category)!.push(item);
+        }
+    });
+
+    // Sort categories alphabetically
+    const sortedCategories = Array.from(groupedItems.keys()).sort();
+
+    // Flatten for table, but we need to structure it for the table
+    // Actually, autoTable expects a flat array of rows.
+    // We will iterate through sorted categories, then their items (sorted by name)
+    // Then append uncategorized items (sorted by name)
+
+    const tableRows: (string | number)[][] = [];
+
+    sortedCategories.forEach(category => {
+        const categoryItems = groupedItems.get(category)!;
+        categoryItems.sort((a, b) => a.name.localeCompare(b.name));
+
+        categoryItems.forEach(item => {
+            tableRows.push([
+                item.name,
+                category,
+                item.length ? `${item.length}m` : "-",
+                item.qty,
+                item.weightPerPc !== null ? item.weightPerPc.toFixed(2) + " kg" : "---",
+                item.totalWeight !== null ? item.totalWeight.toFixed(2) + " kg" : "---",
+            ]);
+        });
+    });
+
+    // Add uncategorized items at the end
+    if (uncategorizedItems.length > 0) {
+        uncategorizedItems.sort((a, b) => a.name.localeCompare(b.name));
+        uncategorizedItems.forEach(item => {
+            tableRows.push([
+                item.name,
+                "Other Items", // Or keep it as is if it's already "Other Items"
+                item.length ? `${item.length}m` : "-",
+                item.qty,
+                item.weightPerPc !== null ? item.weightPerPc.toFixed(2) + " kg" : "---",
+                item.totalWeight !== null ? item.totalWeight.toFixed(2) + " kg" : "---",
+            ]);
+        });
+    }
 
     autoTable(doc, {
         startY: finalY,
-        head: [["Item Name", "Qty", "Weight/Pc", "Total Weight"]],
+        head: [["Item Name", "Category", "Length", "Qty", "Weight/Pc", "Total Weight"]],
         body: tableRows,
         theme: "striped",
         headStyles: { fillColor: [26, 26, 26], textColor: [212, 175, 55] }, // Charcoal + Gold
         columnStyles: {
             0: { fontStyle: "bold" }, // Name
-            3: { fontStyle: "bold", halign: "right" }, // Total Weight
-            2: { halign: "right" }, // Unit Weight
-            1: { halign: "center" }, // Qty
+            1: { fontStyle: "italic" }, // Category
+            5: { fontStyle: "bold", halign: "right" }, // Total Weight (previously col 3)
+            4: { halign: "right" }, // Unit Weight (previously col 2)
+            3: { halign: "center" }, // Qty (previously col 1)
+            2: { halign: "center" }, // Length
         },
     });
 
