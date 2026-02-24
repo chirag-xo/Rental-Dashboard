@@ -117,22 +117,17 @@ export default function RequirementForm() {
 
     // Direct Item Handlers
     const handleAddDirectItem = (item: CustomItem) => {
+        const newOverrides = { ...persistentData.overrides };
+        if (newOverrides[item.name]?.removed) {
+            delete newOverrides[item.name].removed;
+        }
+
         const newItems = [...directItems, item];
         setDirectItems(newItems);
-        // We defer saving to "Next" or allow auto-save?
-        // Let's safe immediately to keep consistent UI state if user reloads
-        // Actually saveState merges, so we need to be careful not to overwrite other fields if we only pass partial
-        // But saveState docs say: const next = { ...prev, ...newState }; so it's a shallow merge of top level keys.
-        // Good.
-        // However, for performance, maybe just local state until "Next"? 
-        // Plan says: "LocalStorage persistence must include... step1 direct items"
-        // Let's save on Next to align with "Reset" logic or save immediately? 
-        // "handeReset" clears everything.
-        // Let's update local state only here, and save on "Next" or "Reset". 
-        // But user expects persistence. The `useEffect` loads it.
-        // If I reload page without clicking Next, I lose data if I don't save here.
-        // So let's save.
-        saveState({ directItems: newItems });
+        saveState({
+            directItems: newItems,
+            overrides: newOverrides
+        });
     };
 
     const handleRemoveDirectItem = (id: string) => {
@@ -155,7 +150,7 @@ export default function RequirementForm() {
             setSelection(resetState);
             setDirectItems([]);
             // Cast to any if data types conflict temporarily, but PersistedData type in usePersistence handles it now.
-            saveState({ selection: resetState, directItems: [] });
+            saveState({ selection: resetState, directItems: [], overrides: {} });
         }
     };
 

@@ -89,39 +89,44 @@ export function calculateRequirements(
     // Usually overrides keys are exactly what was displayed in the table.
     // Ensure `ReviewItems.tsx` uses the same name from the list.
 
-    const finalItems = mergedItems.map(item => {
-        // We might want to try exact match first, then normalized?
-        // Simpler: use exact match as the key in overrides is likely the display name from the table.
-        // But `mergeItems` might change the "name" to whichever casing it found first.
-        // `mergeItems` preserves the name of the first item encountered.
-        // `ReviewItems` renders that name. `handleUpdateQty` uses that name.
-        // So exact match on `item.name` should work!
+    const finalItems = mergedItems
+        .map(item => {
+            // We might want to try exact match first, then normalized?
+            // Simpler: use exact match as the key in overrides is likely the display name from the table.
+            // But `mergeItems` might change the "name" to whichever casing it found first.
+            // `mergeItems` preserves the name of the first item encountered.
+            // `ReviewItems` renders that name. `handleUpdateQty` uses that name.
+            // So exact match on `item.name` should work!
 
-        if (overrides[item.name]) {
-            const override = overrides[item.name];
-            // If qty is defined in override, use it.
-            // Note: override.qty being 0 is valid.
-            const hasQtyOverride = override.qty !== undefined;
-            const newQty = hasQtyOverride ? override.qty! : item.qty;
+            if (overrides[item.name]) {
+                const override = overrides[item.name];
 
-            // Weight override?
-            const hasWeightOverride = override.weightPerPc !== undefined;
-            const newWeightPerPc = hasWeightOverride ? override.weightPerPc! : item.weightPerPc;
+                if (override.removed) return null;
 
-            // Recalc total weight
-            const newTotalWeight = newWeightPerPc !== null
-                ? parseFloat((newQty * newWeightPerPc).toFixed(2))
-                : null;
+                // If qty is defined in override, use it.
+                // Note: override.qty being 0 is valid.
+                const hasQtyOverride = override.qty !== undefined;
+                const newQty = hasQtyOverride ? override.qty! : item.qty;
 
-            return {
-                ...item,
-                qty: newQty,
-                weightPerPc: newWeightPerPc,
-                totalWeight: newTotalWeight
-            };
-        }
-        return item;
-    });
+                // Weight override?
+                const hasWeightOverride = override.weightPerPc !== undefined;
+                const newWeightPerPc = hasWeightOverride ? override.weightPerPc! : item.weightPerPc;
+
+                // Recalc total weight
+                const newTotalWeight = newWeightPerPc !== null
+                    ? parseFloat((newQty * newWeightPerPc).toFixed(2))
+                    : null;
+
+                return {
+                    ...item,
+                    qty: newQty,
+                    weightPerPc: newWeightPerPc,
+                    totalWeight: newTotalWeight
+                };
+            }
+            return item;
+        })
+        .filter((item): item is CalculatedItem => item !== null);
 
     // 6. Calculate Totals
     const categoryTotals: Record<string, number> = {};

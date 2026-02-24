@@ -60,7 +60,14 @@ export default function ReviewItems() {
     };
 
     const handeAddCustom = (item: any) => {
-        saveState({ customItems: [...data.customItems, item] });
+        const newOverrides = { ...data.overrides };
+        if (newOverrides[item.name]?.removed) {
+            delete newOverrides[item.name].removed;
+        }
+        saveState({
+            customItems: [...data.customItems, item],
+            overrides: newOverrides
+        });
     };
 
     const handleUpdateQty = (name: string, qty: number) => {
@@ -70,6 +77,18 @@ export default function ReviewItems() {
                 [name]: {
                     ...data.overrides?.[name],
                     qty,
+                },
+            },
+        });
+    };
+
+    const handleRemoveItem = (name: string) => {
+        saveState({
+            overrides: {
+                ...data.overrides,
+                [name]: {
+                    ...data.overrides?.[name],
+                    removed: true,
                 },
             },
         });
@@ -115,7 +134,11 @@ export default function ReviewItems() {
                 </div>
 
                 {/* Items Table */}
-                <ItemsTable items={items} onUpdateQty={handleUpdateQty} />
+                <ItemsTable
+                    items={items}
+                    onUpdateQty={handleUpdateQty}
+                    onRemoveItem={handleRemoveItem}
+                />
 
                 {/* Add Custom Item */}
                 <CustomItemAdder onAdd={handeAddCustom} />

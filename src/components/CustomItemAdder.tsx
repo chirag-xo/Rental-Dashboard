@@ -30,6 +30,13 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
+    // Refs for enter key navigation
+    const nameRef = useRef<HTMLInputElement>(null);
+    const lengthRef = useRef<HTMLButtonElement>(null);
+    const qtyRef = useRef<HTMLInputElement>(null);
+    const weightRef = useRef<HTMLInputElement>(null);
+    const submitRef = useRef<HTMLButtonElement>(null);
+
     const allItems = useMemo(() => {
         return categories.flatMap(c => c.items);
     }, [categories]);
@@ -57,6 +64,13 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
             setWeight(item.weightPerPcKg.toString());
         }
         setShowSuggestions(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<any>) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            nextRef.current?.focus();
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -107,12 +121,14 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
                     <div className="relative">
                         <Input
                             id="name"
+                            ref={nameRef}
                             value={name}
                             onChange={(e) => {
                                 setName(e.target.value);
                                 setShowSuggestions(true);
                             }}
                             onFocus={() => setShowSuggestions(true)}
+                            onKeyDown={(e) => handleKeyDown(e, lengthRef)}
                             required
                             placeholder="Search or enter item name..."
                             autoComplete="off"
@@ -139,8 +155,17 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
                 <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
                         <Label htmlFor="length">Length (m)</Label>
-                        <Select value={length} onValueChange={setLength}>
-                            <SelectTrigger id="length" className="h-10">
+                        <Select value={length} onValueChange={(val) => {
+                            setLength(val);
+                            // Auto focus qty after selecting length might be annoying if they want to browse,
+                            // but for Enter navigation specifically:
+                        }}>
+                            <SelectTrigger
+                                id="length"
+                                ref={lengthRef}
+                                className="h-10"
+                                onKeyDown={(e) => handleKeyDown(e, qtyRef)}
+                            >
                                 <SelectValue placeholder="Select length" />
                             </SelectTrigger>
                             <SelectContent>
@@ -154,17 +179,35 @@ export function CustomItemAdder({ onAdd }: CustomItemAdderProps) {
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="qty">Quantity</Label>
-                        <Input id="qty" type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} required />
+                        <Input
+                            id="qty"
+                            ref={qtyRef}
+                            type="number"
+                            min="1"
+                            value={qty}
+                            onChange={(e) => setQty(e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, weightRef)}
+                            required
+                        />
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="weight">Weight (kg) <span className="text-muted-foreground text-xs">(Per Pc)</span></Label>
-                        <Input id="weight" type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0" />
+                        <Input
+                            id="weight"
+                            ref={weightRef}
+                            type="number"
+                            step="0.1"
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, submitRef)}
+                            placeholder="0"
+                        />
                     </div>
                 </div>
 
                 <div className="pt-2 flex gap-2">
                     <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsOpen(false)}>Cancel</Button>
-                    <Button type="submit" className="flex-1">Add Item</Button>
+                    <Button type="submit" ref={submitRef} className="flex-1">Add Item</Button>
                 </div>
             </form>
         </div>

@@ -10,14 +10,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { type CalculatedItem, type PackageCategory } from "@/data/packages";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
+import { Button } from "./ui/button";
 
 type ItemsTableProps = {
     items: CalculatedItem[];
     onUpdateQty?: (name: string, qty: number) => void;
+    onRemoveItem?: (name: string) => void;
 };
 
-export function ItemsTable({ items, onUpdateQty }: ItemsTableProps) {
+export function ItemsTable({ items, onUpdateQty, onRemoveItem }: ItemsTableProps) {
     const [search, setSearch] = useState("");
 
     const filteredItems = useMemo(() => {
@@ -59,6 +61,7 @@ export function ItemsTable({ items, onUpdateQty }: ItemsTableProps) {
                             <TableHead className="text-center w-[60px]">Qty</TableHead>
                             <TableHead className="text-right w-[80px]">Wt/Pc</TableHead>
                             <TableHead className="text-right w-[80px]">Total</TableHead>
+                            {onRemoveItem && <TableHead className="w-[40px]"></TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -73,7 +76,7 @@ export function ItemsTable({ items, onUpdateQty }: ItemsTableProps) {
                         {categories.map((cat) => (
                             <>
                                 <TableRow key={`header-${cat}`} className="bg-muted/30 hover:bg-muted/30">
-                                    <TableCell colSpan={4} className="font-semibold text-primary py-2 text-xs uppercase tracking-wider">
+                                    <TableCell colSpan={onRemoveItem ? 5 : 4} className="font-semibold text-primary py-2 text-xs uppercase tracking-wider">
                                         {cat}
                                     </TableCell>
                                 </TableRow>
@@ -119,6 +122,18 @@ export function ItemsTable({ items, onUpdateQty }: ItemsTableProps) {
                                         <TableCell className="text-right font-medium">
                                             {item.totalWeight !== null ? item.totalWeight.toFixed(2) : <span className="text-muted-foreground">-</span>}
                                         </TableCell>
+                                        {onRemoveItem && (
+                                            <TableCell className="text-center px-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+                                                    onClick={() => onRemoveItem(item.name)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                             </>

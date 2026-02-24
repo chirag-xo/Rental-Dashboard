@@ -34,6 +34,7 @@ export type CustomItem = {
 export type ItemOverride = {
     qty?: number;
     weightPerPc?: number;
+    removed?: boolean;
 };
 
 type PersistedData = {
